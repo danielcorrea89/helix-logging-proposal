@@ -1,4 +1,4 @@
-[← Home](../README.md)
+[← Home](../README.md) &nbsp;|&nbsp; [← Cost Model](06-cost-model.md) &nbsp;|&nbsp; Next: [Risks →](08-risks.md)
 
 # 7 — Automation
 
@@ -89,13 +89,14 @@ flowchart TD
     T1["Create Azure Tenant\nor accept existing credentials"]
     T2["Deploy Simulation Infrastructure\npulumi up — helix/simulation/client-N"]
     T3["Deploy Logging Baseline\npulumi up — helix/logging/client-N\nClientLoggingBaseline component"]
-    T4{"Verify Log Ingestion\nAMA heartbeat received?\nPolicy compliant?"}
-    T5["Notify Client Ready\nscoped workspace link issued"]
+    T3B["Request M365 Consent\ngenerate consent URL · dispatch to client admin\nblocks up to 48h for client action"]
+    T4{"Verify Ingestion\nAMA heartbeat · Policy compliant\nM365 connector active?"}
+    T5["Issue Client Access\nRBAC + Workbooks deployed in client tenant\nclient notified with portal URL"]
     ERR["Alert: Onboarding Incomplete\nplatform team notified"]
-    RETRY["Manual Intervention\nor auto-retry with backoff"]
+    RETRY["Auto-retry correctable gaps\nor manual intervention for structural drift"]
     END(["Environment Active\nlogging live · client access granted"])
 
-    START --> T1 --> T2 --> T3 --> T4
+    START --> T1 --> T2 --> T3 --> T3B --> T4
     T4 -->|"Pass"| T5 --> END
     T4 -->|"Fail"| ERR --> RETRY
     RETRY -.-> T3
@@ -109,9 +110,13 @@ Temporal Workflow: provision-client-environment
   ├── Activity: deploy_simulation_infrastructure (existing Pulumi stack)
   ├── Activity: deploy_logging_baseline          ← ClientLoggingBaseline
   │   └── pulumi up helix/logging/client-{id}
-  ├── Activity: verify_log_ingestion             ← smoke test: confirm AMA heartbeat
-  └── Activity: notify_client_ready
+  ├── Activity: request_m365_consent             ← generate consent URL; send to client admin
+  │   └── blocks until client confirms or 48-hour timeout (manual step — requires client action)
+  ├── Activity: verify_log_ingestion             ← AMA heartbeat + M365 connector active check
+  └── Activity: notify_client_ready              ← confirm RBAC + Workbooks deployed in client tenant; send client the portal URL
 ```
+
+**M365 consent step:** The M365 Defender/Purview connector requires the client's M365 Global Administrator to grant delegated consent to Helix's Sentinel managed application. This cannot be automated — it requires a human action in the client's tenant. The `request_m365_consent` activity generates the consent URL and dispatches it to the client contact on record. The workflow blocks with a Temporal `heartbeat` signal until the client confirms consent or the timeout expires, at which point the platform team is alerted. Clients who skip this step have full Azure log collection but no M365 audit ingestion.
 
 This integration means logging is never an afterthought. Every client environment that exists has a logging baseline. There is no configuration drift between environments because the same code path runs for every client.
 
@@ -145,12 +150,41 @@ Standard query packs cover the three personas:
 
 ---
 
+## Sentinel Analytics Rule Lifecycle
+
+Sentinel analytics rules are deployed to all client workspaces as code. This creates a lifecycle management responsibility: a misconfigured or noisy rule deployed once affects every client simultaneously.
+
+**Deployment model:**
+- Rules are stored in the Pulumi repository as Python/JSON objects under `helix/logging/sentinel_rules/`
+- All rule changes go through a pull request — no direct portal edits
+- The Pulumi pipeline deploys rule changes to a single test client workspace first; promotion to all client workspaces requires explicit approval in the pipeline
+
+**Rule coverage by tier:**
+
+| Rule set | Standard tier | High-sensitivity tier |
+|---|---|---|
+| Authentication anomalies (brute force, impossible travel) | Included | Included |
+| Privilege escalation patterns | Included | Included |
+| Lateral movement detection (Windows Event correlation) | Included | Included |
+| NVA deny trend analysis | Included | Included |
+| M365 admin activity anomalies | Included | Included |
+| Custom SOAR playbooks (auto-contain, notify) | Not included | Included |
+| Extended threat hunting rules | Not included | Included |
+
+**Tuning:** False-positive suppression (watchlists, exclusion rules) is maintained per client. A suppression added for one client does not affect others — each client has isolated suppression state. Rule version history is tracked via git; rollback is `git revert` + pipeline run.
+
+---
+
 ## Drift Detection
 
 After initial onboarding, the logging baseline can drift if resources are added or configurations changed manually. Two mechanisms detect and correct drift:
 
 1. **Azure Policy continuous compliance:** Evaluated every 24 hours. Non-compliant resources are reported in the Azure Policy compliance dashboard and can trigger automated remediation tasks.
 
-2. **Pulumi refresh in CI:** A scheduled pipeline run executes `pulumi refresh` weekly against each client stack. Drift between Pulumi state and actual Azure state is surfaced as a diff — reviewed by the platform team and either accepted or corrected.
+2. **Pulumi refresh in CI:** A scheduled pipeline run executes `pulumi refresh` weekly against each client stack. Drift between Pulumi state and actual Azure state is surfaced as a diff. For diffs that match known correctable patterns (e.g. a DCR association missing from a new VM), the pipeline auto-applies the correction and raises a notification. For structural drift (e.g. a workspace retention setting changed), the diff is raised as a pull request for platform team review.
 
-These two mechanisms together mean that a client environment that has been modified post-onboarding is detected and brought back to baseline, without requiring manual audit of each tenant.
+These two mechanisms together mean that a client environment that has been modified post-onboarding is detected and brought back to baseline. Azure Policy handles the continuous self-healing of resource-level gaps; Pulumi handles workspace-level configuration drift. Neither requires manual per-tenant audit.
+
+---
+
+[← Cost Model](06-cost-model.md) &nbsp;|&nbsp; Next: [Risks →](08-risks.md)

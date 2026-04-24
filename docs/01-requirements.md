@@ -1,4 +1,4 @@
-[← Home](../README.md)
+[← Home](../README.md) &nbsp;|&nbsp; Next: [Options →](02-options.md)
 
 # 1 — Requirements
 
@@ -123,3 +123,7 @@ The following assumptions are made explicitly. A different answer to any of thes
 - **Clients access their own logs directly:** The "Clients" persona implies paying clients have a scoped read path into their own event data — not mediated entirely by Helix staff.
 - **Greenfield:** No existing SIEM or log aggregation assumed. The architecture is designed as a target state, not a migration.
 - **Scale assumption for cost modelling:** 10–20 client tenants generating 5–20 GB/day each. Numbers are illustrative; the tiering model applies at any scale.
+
+---
+
+[← Home](../README.md) &nbsp;|&nbsp; Next: [Options →](02-options.md)

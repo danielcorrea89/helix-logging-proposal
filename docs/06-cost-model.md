@@ -1,4 +1,4 @@
-[← Home](../README.md)
+[← Home](../README.md) &nbsp;|&nbsp; [← Team Impact](05-team-impact.md) &nbsp;|&nbsp; Next: [Automation →](07-automation.md)
 
 # 6 — Cost Model
 
@@ -14,7 +14,7 @@ Not all logs have equal value. Charging Sentinel-tier prices for verbose contain
 |---|---|---|---|---|
 | **Analytics** | Log Analytics — Analytics Logs | 90 days hot | ~$2.30/GB ingested | Security events, audit logs, product events — queried regularly, often within hours of ingestion |
 | **Basic** | Log Analytics — Basic Logs | 8 days hot | ~$0.50/GB ingested | Verbose app logs, container stdout, debug traces — queried occasionally, usually only during incidents |
-| **Archive** | Log Analytics — Archive | Up to 12 years | ~$0.02/GB/month | Compliance retention, historical forensics — rarely queried; restored on-demand for specific investigations |
+| **Archive** | Log Analytics — Archive | Up to 12 years from ingestion | ~$0.02/GB/month | Compliance retention, historical forensics — rarely queried; restored on-demand for specific investigations |
 
 ```mermaid
 xychart-beta
@@ -79,9 +79,9 @@ flowchart LR
     mid --> low
 ```
 
-## Cost Comparison: Isolated vs Shared Workspaces
+## Cost Comparison: Isolated vs Shared Workspaces (Option A vs Option B)
 
-The architecture recommends one workspace per client. The following illustrates the cost difference vs a shared workspace model to show the trade-off explicitly.
+The architecture recommends one workspace per client (Option A). The following illustrates the cost difference against a shared workspace model (Option B) to show the trade-off explicitly. See [Options](02-options.md) for the full architectural comparison.
 
 **Assumptions:** 10 clients, each generating 10 GB/day of analytics-tier logs. USD approximate prices.
 
@@ -135,4 +135,4 @@ When a client simulation environment is not running, its logging cost is effecti
 - **Table-level Basic Logs** designation applied to verbose tables on workspace creation
 - **Commitment tier review** monthly — move to a higher commitment tier when volume stabilises above a threshold
 - **Budget alerts** per workspace tagged `billing-entity: client` — alert at 80% of expected monthly spend
-- **Archive policy** — after 90 days (Analytics) or 8 days (Basic), data moves to Archive automatically without manual intervention
+- **Archive policy** — after 90 days (Analytics) or 8 days (Basic), data moves to Archive automatically without manual intervention. Data is retained in Archive for up to 12 years from the original ingestion date, or until explicitly deleted — whichever comes first. The retention period is set per workspace at onboarding via the Pulumi module.

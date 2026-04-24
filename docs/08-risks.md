@@ -1,4 +1,4 @@
-[← Home](../README.md)
+[← Home](../README.md) &nbsp;|&nbsp; [← Automation](07-automation.md)
 
 # 8 — Risks and Mitigations
 
@@ -42,7 +42,7 @@ quadrantChart
 | 7 | Client challenges Helix's access to their log data | Low | High | Lighthouse audit log provides complete chain of custody; PIM activation record shows who accessed what and why; access is time-limited and revocable by the client; contractual access terms defined at onboarding |
 | 8 | Pulumi state drift in long-lived client environments | Low | Medium | Weekly `pulumi refresh` in CI; Azure Policy continuous compliance evaluation; drift surfaced as PR diff for review |
 | 9 | AMA not supported on some NVA operating systems | Medium | Low | NVAs use syslog forwarding to a dedicated Linux log forwarder VM — AMA is only required on the forwarder, not the NVA itself |
-| 10 | Sentinel cost grows faster than expected at scale | Low | Medium | Sentinel is only enabled on the Shared LAW and on client workspaces for high-sensitivity tiers; standard-tier clients use Azure Monitor alerting only — evaluate Sentinel per client based on value |
+| 10 | Sentinel cost grows faster than expected at scale | Low | Medium | Sentinel is enabled on all client workspaces (required for M365 connector and cross-workspace analytics). Cost is controlled by tiering analytics rule coverage — standard clients get a baseline rule set only; high-sensitivity clients get full detection. Verbose tables (Basic Logs tier) do not incur Sentinel per-GB charges. |
 
 ---
 
@@ -52,15 +52,14 @@ This is the only risk in the register that is both low probability and catastrop
 
 **Scenario:** A Helix platform engineer's account is compromised. The attacker activates the PIM-eligible Lighthouse delegation role and gains read access to a client's Log Analytics Workspace.
 
-**What they can see:** That client's security events, authentication logs, M365 audit trail, and NVA logs for the duration of the PIM window (maximum 4 hours).
+**What they can see:** All clients' security events, authentication logs, M365 audit trails, and NVA logs for the duration of the PIM window (4-hour default). This is the real blast radius — all clients, simultaneously, for the window duration.
 
 **What they cannot do:**
-- Access other clients' workspaces (delegation is scoped per workspace, per client)
-- Delete or modify log data (delegation is read-only)
-- Access the client tenant's compute, network, or identity resources (delegation does not extend to those scopes)
-- Extend their access beyond the PIM window without a new activation (which generates another audit event)
+- Modify or delete log data in any client workspace (all Lighthouse delegations are read-only)
+- Access any client tenant's compute, network, or identity resources (delegation is scoped to Log Analytics only)
+- Extend their access beyond the PIM window without a new activation (which generates another audit event and requires a fresh MFA challenge)
 
-**Why this is an acceptable residual risk:** The blast radius is bounded by design. This is not a "one credential → all clients' raw data" scenario. A compromise is contained to one client's workspace for at most 4 hours, and the access is fully audited. Compare this to Option B (fully centralised), where a single workspace compromise exposes all clients' raw data with no time limit.
+**Why this is an acceptable residual risk:** The blast radius is bounded by design. A credential compromise that also bypasses MFA results in read-only access to all clients' log data for at most 4 hours — it cannot modify data, touch compute or network resources, or persist beyond the PIM window. That is the real blast radius: all clients, read-only, time-limited, fully audited. Compare this to Option B (fully centralised), where a single workspace compromise exposes all clients' raw data with no time limit, no per-client isolation, and no automatic expiry.
 
 **Hardening steps beyond those already described:**
 - Enable Microsoft Entra ID Protection on the managing tenant — compromised credential detection fires before an attacker can activate PIM
@@ -78,3 +77,7 @@ The residual risk profile of the recommended architecture is acceptable for a cy
 - Option C (security-only centralisation) has lower cost risk but higher operational complexity and gap risk
 
 The federated model with PIM/JIT and Policy enforcement is the most defensible operating posture for this platform.
+
+---
+
+[← Automation](07-automation.md) &nbsp;|&nbsp; [← Home](../README.md)

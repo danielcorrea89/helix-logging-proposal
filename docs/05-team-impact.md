@@ -1,4 +1,4 @@
-[← Home](../README.md)
+[← Home](../README.md) &nbsp;|&nbsp; [← Security Controls](04-security.md) &nbsp;|&nbsp; Next: [Cost Model →](06-cost-model.md)
 
 # 5 — Team Impact
 
@@ -117,3 +117,7 @@ Developers access the Shared LAW for shared component debugging (Django, simulat
 OpenTelemetry instrumentation in the Python simulation engine and Django backend provides **structured traces** — developers can correlate a slow simulation run with a specific Temporal workflow execution and the container logs from that ACA revision, without needing a privileged account.
 
 The OTel SDK is vendor-neutral. If Helix ever moves parts of the stack off Azure, the instrumentation layer stays the same and only the exporter endpoint changes.
+
+---
+
+[← Security Controls](04-security.md) &nbsp;|&nbsp; Next: [Cost Model →](06-cost-model.md)
