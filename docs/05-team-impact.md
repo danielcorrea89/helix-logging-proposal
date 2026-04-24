@@ -1,0 +1,119 @@
+[← Home](../README.md)
+
+# 5 — Team Impact
+
+## Summary Matrix
+
+| Team | What changes | What they gain | What they own |
+|---|---|---|---|
+| **Infrastructure** | Workspace topology, Lighthouse delegation design, Policy assignments | Reusable onboarding module; consistent baseline across all clients | Workspace architecture, Lighthouse scope definitions, retention config |
+| **DevOps** | Pipeline identity model, onboarding automation, OTel integration | No manual steps to add a new client; drift is detected automatically | Pulumi modules, pipeline definitions, Policy remediation workflows |
+| **Security — Blue** | Replaces ad-hoc client access with PIM/JIT; gains Sentinel across shared + clients | Full audit trail of every admin access to client data; Sentinel analytics across environments | PIM policies, Sentinel analytics rules, incident response playbooks |
+| **Security — Red** | Gains consistent, queryable telemetry from every client environment | Attack path visibility across Windows Event, Sysmon, NVA deny, M365 audit | Red team simulation scenarios, telemetry validation |
+| **Business / Finance** | Per-client cost attribution via tagging; predictable scaling model | Can price simulation environments accurately; no surprise log bills | Cost Management tags, budget alerts, client billing reconciliation |
+| **Operations** | Centralised dashboard experience; PIM-gated client access replaces manual portal hopping | Single-pane-of-glass across shared + client environments | Workbooks, query packs, alert triage runbooks |
+| **Software Development** | OTel SDK integration in simulation engine; ACA diagnostic settings | No security-admin rights needed to debug platform issues; structured traces with consistent schema | OTel instrumentation in Python services, application log schema |
+
+---
+
+## Platform Layers and Ownership
+
+```mermaid
+flowchart LR
+    subgraph shared_src["Shared Platform Sources\nSoftware Dev owns instrumentation"]
+        S1["Django / Python\nOTel SDK"]
+        S2["Simulation Engine\nTemporal + OTel"]
+    end
+
+    subgraph client_src["Client Tenant Sources\nDevOps provisions via Pulumi — no Dev access"]
+        S3["Client VMs\nAMA + DCR"]
+        S4["NVAs · M365\nSyslog · Purview"]
+    end
+
+    subgraph collection["Collection — DevOps owns this layer"]
+        C1["Data Collection Rules\nDCR transformations"]
+        C2["Azure Monitor Agent\nAMA on every VM"]
+        C3["Azure Policy\nDeployIfNotExists"]
+    end
+
+    subgraph storage["Storage — Infrastructure owns this layer"]
+        ST1[("Shared LAW\nHelix platform")]
+        ST2[("Per-Client LAW\nOne per tenant")]
+    end
+
+    subgraph access["Access — Security owns this layer"]
+        A1["Microsoft Sentinel\nAnalytics · Playbooks"]
+        A2["Azure PIM\nJIT elevation"]
+        A3["Lighthouse\nDelegated read"]
+    end
+
+    subgraph consume["Consume — Operations serves these personas"]
+        P1["Developers\nShared LAW only"]
+        P2["IT Admins / Security\nSentinel + PIM"]
+        P3["Clients\nOwn workspace only"]
+    end
+
+    shared_src --> collection
+    client_src --> collection
+    collection --> storage
+    storage --> access
+    access --> consume
+```
+
+---
+
+## Narrative by Team
+
+### Infrastructure
+
+The architecture gives the infrastructure team a **single repeatable pattern** for every client environment. Rather than configuring logging differently per client, onboarding produces the same baseline every time — one workspace, one set of DCRs, one Lighthouse delegation scope. Adding a new client is a Pulumi run, not a project.
+
+The infrastructure team retains ownership of the workspace topology decision (isolated vs shared) and can evolve it per client tier as the business requires. The architecture is designed to support both without rebuilding the collection layer.
+
+### DevOps
+
+The DevOps team benefits most from the **policy-as-code enforcement model**. Once Azure Policy is deployed at the client subscription level, diagnostic settings and AMA are enforced automatically on new resources — the pipeline does not need to track every resource addition manually.
+
+Pipeline identities are scoped narrowly per purpose. There are no broad-privilege deployment credentials. The Pulumi onboarding module is a `ComponentResource` class — adding a new client tenant requires instantiating it with the client's parameters, not copying and modifying a previous deployment.
+
+This setup allows the DevOps team to iterate on simulation environments without touching core client log data, while the Security team retains oversight via Azure Policy and PIM-gated access.
+
+### Security — Blue Team
+
+The blue team gains the most operationally. Today, investigating an incident in a client environment likely requires either local credentials in that tenant or a context-switch to a different portal. With this architecture:
+
+1. PIM activation from Helix's managing tenant provides time-limited read access to the client's workspace
+2. Cross-workspace queries from Sentinel surface client security events alongside shared platform signals
+3. Every query is logged — chain of custody for forensic investigations is clear
+
+The blue team also gains **Sentinel analytics rules** deployed consistently across all client environments. A detection that catches lateral movement in one client environment is automatically active in all of them.
+
+### Security — Red Team
+
+Red team operations depend on the fidelity of the simulation environment's telemetry. The architecture ensures:
+
+- Windows Security Events, Sysmon (if deployed), and DNS logs are collected via AMA and visible in the client workspace
+- NVA deny logs and IPS alerts are captured in CEF format and queryable
+- M365 audit events cover authentication and admin activity in the simulated M365 tenant
+
+Red team exercise outcomes are only meaningful if the telemetry is comprehensive. Gaps in collection are gaps in detection capability — this architecture makes those gaps visible via Azure Policy compliance reporting.
+
+### Business / Finance
+
+Every client workspace and resource is tagged with `client-id`, `environment`, and `simulation-tier`. Azure Cost Management subscription views slice costs per client automatically.
+
+The tiered log model (Analytics / Basic / Archive) means Helix is not paying Sentinel-tier prices for verbose simulation runtime logs that nobody queries. High-value security and audit events land in Analytics; verbose debug logs land in Basic (80% cost reduction per GB); historical compliance retention lands in Archive. Cost scales proportionally to client count and simulation volume, not faster.
+
+### Operations
+
+Operations teams access logs through **Workbooks** and **standardised KQL query packs** deployed as code. They do not need to know which workspace a client's data is in — the centralised Workbook queries across delegated workspaces transparently.
+
+For a small team, this removes the burden of maintaining bespoke per-client dashboards. One Workbook template, parameterised by client, serves all of them. Updates to the Workbook are deployed once and apply everywhere.
+
+### Software Development
+
+Developers access the Shared LAW for shared component debugging (Django, simulation engine, ACA). They have `Log Analytics Reader` on the shared workspace and no access to client workspaces.
+
+OpenTelemetry instrumentation in the Python simulation engine and Django backend provides **structured traces** — developers can correlate a slow simulation run with a specific Temporal workflow execution and the container logs from that ACA revision, without needing a privileged account.
+
+The OTel SDK is vendor-neutral. If Helix ever moves parts of the stack off Azure, the instrumentation layer stays the same and only the exporter endpoint changes.

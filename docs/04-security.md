@@ -1,0 +1,162 @@
+[← Home](../README.md)
+
+# 4 — Security Controls
+
+## Identity is the Load-Bearing Wall
+
+Every security property of this architecture depends on the identity model being correct. A misconfigured RBAC assignment or an overly broad Lighthouse delegation scope would silently invalidate the isolation guarantees regardless of how carefully everything else is built. Security design starts here, not at the network layer.
+
+---
+
+## Trust Boundaries
+
+Three distinct trust boundaries exist in this architecture. Each requires a different control posture.
+
+```mermaid
+flowchart TB
+    subgraph managing["Helix Managing Tenant — highest trust"]
+        SENT["Sentinel / Workbooks"]
+        SLAW[("Shared LAW")]
+        PIM["Azure PIM\nNo standing privilege"]
+        SLAW --> SENT
+    end
+
+    crossing["▲ cross-tenant boundary — controlled crossing point ▲"]
+
+    subgraph ca["Client Tenant A — isolated"]
+        LAWA[("LAW — Client A")]
+        VMSA["VMs · NVA · M365"]
+        VMSA --> LAWA
+    end
+
+    subgraph cn["Client Tenant N — isolated"]
+        LAWN[("LAW — Client N")]
+        VMSN["VMs · NVA · M365"]
+        VMSN --> LAWN
+    end
+
+    PIM -. "JIT elevation\ntime-limited" .-> crossing
+    crossing -. "Lighthouse delegation\nread-only · audited" .-> LAWA
+    crossing -. "Lighthouse delegation\nread-only · audited" .-> LAWN
+    LAWA -. "delegated query" .-> SENT
+    LAWN -. "delegated query" .-> SENT
+```
+
+**Boundary 1 — Shared platform (Helix tenant):** Standard Azure RBAC within Helix's own tenant. Managed like any production Azure environment — least privilege, no standing admin, Entra PIM for privileged roles.
+
+**Boundary 2 — Cross-tenant (Helix → Client):** This is the high-risk boundary. Crossing it without proper controls is the single most dangerous design failure in this architecture. Managed via Azure Lighthouse + PIM as described below.
+
+**Boundary 3 — Client tenant internal:** Managed by the Pulumi onboarding module. DCRs, AMA, NSG rules, and diagnostic settings are deployed consistently. Clients do not have access to Helix's shared platform.
+
+---
+
+## PIM / JIT Access Flow
+
+```mermaid
+sequenceDiagram
+    actor Admin as Helix Admin
+    participant PIM as Azure PIM
+    participant LH as Lighthouse
+    participant CLAW as Client LAW
+    participant AL as Entra Audit Log
+
+    Admin->>PIM: Request Log Analytics Reader activation
+    PIM->>Admin: Require MFA + justification
+    Admin->>PIM: Submit (MFA satisfied, reason provided)
+    PIM-->>Admin: Role active — 4-hour window begins
+    PIM->>AL: Record: who · why · duration · timestamp
+
+    Admin->>LH: Query client workspace
+    LH->>CLAW: Delegated read — read-only scope only
+    CLAW-->>Admin: Log data returned
+    LH->>AL: Record: query executed · tables accessed
+
+    Note over PIM,CLAW: Access auto-expires after 4 hours — no manual revocation needed
+    Note over AL: Full chain of custody — both activation and query events are immutable
+```
+
+---
+
+## Azure Lighthouse — What It Does and the Blast Radius
+
+Azure Lighthouse allows Helix to operate on resources in a client's Azure tenant using identities from Helix's own tenant. When a client deploys the Lighthouse registration (an ARM template deployed to their subscription), they grant specific RBAC roles at a specific scope to specific principals in Helix's tenant.
+
+**What this enables:**
+- Helix admins query the client's Log Analytics Workspace from the Helix-managed Sentinel and workbooks
+- No accounts are created inside the client's Entra directory
+- All access is visible in both tenants' Entra audit logs
+- Delegations can be revoked by the client at any time
+
+**The blast radius problem:**
+If a Helix managing tenant credential with Lighthouse delegation is compromised, the attacker inherits every delegated permission across every client tenant simultaneously. This is the defining risk of the Lighthouse model and must be mitigated at every layer.
+
+---
+
+## Lighthouse Blast Radius Mitigations
+
+### 1. Scope delegation to the workspace, not the subscription
+
+The Lighthouse registration delegates `Log Analytics Reader` at the **resource group containing the client's LAW**, not at the subscription level. An attacker who compromises the delegated credential can read that workspace — they cannot enumerate subscriptions, modify resources, or access other resource groups.
+
+### 2. No standing privilege — PIM-eligible delegation only
+
+The `Log Analytics Reader` role in the Lighthouse delegation is assigned to a **PIM-eligible group** in Helix's Entra tenant, not directly to users or service principals. No Helix user has standing read access to any client workspace. Every access request:
+- Requires explicit PIM activation with a stated justification
+- Is subject to an approval workflow for sensitive client tiers
+- Is valid for a maximum time window (4 hours default)
+- Generates an audit event in Helix's Entra sign-in and audit logs
+
+### 3. Separate deployment identity from read identity
+
+The service principal used by the Pulumi onboarding pipeline to configure the Lighthouse registration and deploy DCRs in the client tenant has `Contributor` scoped to the client LAW resource group only — it **cannot read log data**. The group that can read log data (PIM-eligible) has no deployment permissions. These are never the same identity.
+
+### 4. Harden the managing tenant
+
+The value of Lighthouse is proportional to the security of the managing tenant. Controls applied to Helix's own Entra tenant:
+
+| Control | Implementation |
+|---|---|
+| No permanent privileged roles | All `Owner`, `Contributor`, `Security Admin` assignments are PIM-eligible only |
+| Conditional Access on admin paths | Require MFA + compliant device + named location for all PIM activations |
+| Separate admin identities | Platform operators use a separate cloud-only admin account — not their day-to-day identity |
+| Break-glass accounts | Two emergency-access accounts with permanent `Global Admin`, excluded from Conditional Access, MFA hardware-bound, credentials stored in physical safe, alert on any use |
+| No client secrets in pipelines | All pipeline authentication uses Workload Identity Federation (OIDC) — no long-lived secrets |
+
+---
+
+## Pipeline Identity Model
+
+Pipelines must not hold broad standing privilege. The deployment model uses narrow, purpose-scoped identities per trust boundary.
+
+| Identity | Purpose | Scope | Auth method |
+|---|---|---|---|
+| `id-shared-logging-deploy` | Deploy shared LAW, Sentinel, workbooks | `Contributor` on Shared LAW resource group | Workload Identity Federation (GitHub Actions / Pulumi Cloud → Entra OIDC) |
+| `id-client-onboard` | Deploy Lighthouse registration + DCRs + Policy assignments in client tenant | `Contributor` on client LAW resource group + `Resource Policy Contributor` on client subscription (via Lighthouse) | Workload Identity Federation |
+| `id-client-read` (PIM group) | Query client workspaces for operational/incident use | `Log Analytics Reader` on client LAW (via Lighthouse) | Human PIM activation, not pipeline |
+| `id-ama-deploy` | Install AMA on client VMs | `Virtual Machine Contributor` on VM resource group | Workload Identity Federation |
+
+No identity has `Owner`, `Subscription Contributor`, or `Global Admin` by default. The Pulumi pipeline never needs to read log data — only deploy collection infrastructure.
+
+---
+
+## Azure Policy Enforcement
+
+Azure Policy assignments must live **inside the client's subscription** — Policy cannot govern resources cross-tenant. Helix deploys them there during onboarding via the `Resource Policy Contributor` Lighthouse delegation. Once deployed, the policy runs natively inside the client tenant and self-enforces without any ongoing Helix involvement.
+
+Two policy types are applied at the client subscription level:
+
+**`DeployIfNotExists` — Diagnostic Settings:** If any Azure resource — existing or newly created — lacks a diagnostic setting pointing to the client LAW, the policy engine deploys one automatically within minutes. This covers every resource type present at onboarding *and* any resource added to the client subscription afterwards. No Pulumi run required.
+
+**`DeployIfNotExists` — AMA on VMs:** Automatically deploys the Azure Monitor Agent extension to any VM missing it. Covers both VMs present at onboarding and VMs spun up later as the simulation environment grows.
+
+**Effect:** The client subscription is self-healing. A new Windows VM created six months after onboarding will automatically receive diagnostic settings and AMA without any action from Helix or the client. This is the only mechanism that guarantees truly continuous coverage as client environments evolve.
+
+**Effect on Helix operations:** The platform team does not need to track individual resource additions in client tenants. Policy enforces the baseline continuously. Compliance dashboards in Azure Policy show the gap between what should be collected and what is.
+
+---
+
+## Log Integrity and Retention Controls
+
+- **Immutable storage:** Client LAWs are configured with a lock that prevents log deletion for the retention period. Clients and Helix operators cannot delete historical entries retroactively.
+- **Private Link (optional for high-sensitivity clients):** AMA on client VMs can be configured to send data over Private Endpoints rather than public internet, keeping log traffic off the public network entirely.
+- **Table-level access:** Within the client LAW, `SecurityEvent` and `OfficeActivity` tables are accessible only to the PIM-elevated admin group. Client users see product event tables only.
