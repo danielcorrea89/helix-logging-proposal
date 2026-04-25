@@ -30,20 +30,20 @@ xychart-beta
 
 ## Per-Source Tier Assignment
 
-| Log source | Recommended tier | Rationale |
+| Log category | Tier | Rationale |
 |---|---|---|
-| Windows Security Events (4624, 4625, 4648, 4672, 4720...) | Analytics | Core authentication and privilege events — high query frequency in security operations |
-| Windows Event — verbose (application, system, verbose audit) | Basic | Useful during incident investigation; not routinely queried |
-| Linux auth / syslog (auth, sudo, SSH) | Analytics | Authentication and privilege escalation signals |
-| Linux syslog — verbose (cron, daemon, kernel) | Basic | Low operational value outside active investigation |
-| NVA — deny / IPS / VPN events | Analytics | Network security decisions — queried in blue team exercises and incident triage |
-| NVA — allow / statistics / flow | Basic | High volume, low value unless actively investigating a lateral movement path |
-| M365 audit (admin activity, Purview, Defender) | Analytics | Compliance and security — queried for audit and investigation |
-| Django / Python application logs | Basic | Platform debugging — high volume, queried only during incidents |
-| ACA container logs | Basic | High volume simulation output — useful during dev/debug, not in steady state |
-| Cloudflare access logs | Basic | High volume; Analytics only for WAF block/challenge events via DCR filter |
+| Windows / Linux authentication and privilege events | Analytics | Core security signals — queried frequently during incidents and investigations |
+| Windows / Linux verbose system and application events | Basic | High volume, low routine value — queried only during active investigations |
+| NVA deny, IPS, and VPN events | Analytics | Network security decisions — queried in blue team exercises and incident triage |
+| NVA allow, statistics, and flow logs | Basic | High volume; low value unless tracing a specific lateral movement path |
+| M365 audit, admin activity, Defender alerts | Analytics | Compliance and security — primary audit trail for M365 environments |
+| Django / Python application and container logs | Basic | Platform debugging — high volume, incident-driven queries only |
 | Cloudflare WAF blocks and bot events | Analytics | Actionable security signals — small volume, high value |
+| Cloudflare access logs (non-WAF) | Basic | High volume; not routinely queried |
 | Entra sign-in and audit logs | Analytics | Identity events — always relevant for security posture |
+| GitHub Actions / Pulumi Cloud audit | Basic | Deployment audit trail — queried during security investigations |
+
+The full per-event-ID routing table is in the [Implementation Appendix](appendix.md#per-source-log-tier-assignment).
 
 ---
 
@@ -79,6 +79,23 @@ flowchart LR
     mid --> low
 ```
 
+## Billing Ownership
+
+The Log Analytics Workspace and Sentinel instance for each client are deployed **inside the client's Azure subscription**. This means the Azure invoice for that storage and compute lands on whichever billing account owns the subscription.
+
+Two operating models are possible:
+
+| Model | Who receives the Azure bill | Implication |
+|---|---|---|
+| **Helix-managed subscriptions** (recommended) | Helix | Azure costs are Helix's operational cost, recovered through service pricing. The `billing-entity: client` tag enables Helix to attribute and report costs per client internally — not to split the Azure bill, but to price each simulation environment accurately. |
+| **Client-owned subscriptions** | The client | LAW + Sentinel costs land on the client's own Azure bill. This must be agreed contractually at onboarding — the client is accepting Azure charges as a condition of the platform. |
+
+For a cybersecurity simulation platform, **Helix-managed subscriptions** is the expected model: Helix provisions the full environment, owns the Azure resources, and bundles infrastructure cost into the service price. The per-client cost attribution tags exist so that Helix knows exactly what each client environment costs — and can price it accurately.
+
+If a client brings their own Azure subscription, the onboarding contract must explicitly state that deploying the logging baseline will incur Azure charges (estimated at the amounts in this document) on their bill.
+
+---
+
 ## Cost Comparison: Isolated vs Shared Workspaces (Option A vs Option B)
 
 The architecture recommends one workspace per client (Option A). The following illustrates the cost difference against a shared workspace model (Option B) to show the trade-off explicitly. See [Options](02-options.md) for the full architectural comparison.
@@ -93,7 +110,22 @@ The architecture recommends one workspace per client (Option A). The following i
 
 The saving grows at scale. At 30 clients (300 GB/day) the commitment tier discount reaches ~20–25% and the shared workspace qualifies for an **Azure Monitor Dedicated Cluster** (~$0.16/GB at 100+ GB/day), widening the gap further.
 
-**The trade-off is explicit:** isolated workspaces cost ~15% more at 10 clients. For clients where data isolation is contractually required (defence, government, regulated industries), that premium is non-negotiable. For clients where isolation is a preference rather than a requirement, a shared workspace with resource-context access control is a viable option that Helix can offer as a lower-cost tier.
+### Why the isolated model is the right choice despite the cost premium
+
+The ~15% cost difference is real. The reasons to pay it are also real:
+
+| Reason | Isolated (Option A) | Shared (Option B) |
+|---|---|---|
+| **Data residency** | Each client's raw data stays inside their own Entra boundary — never co-located with another client's data | All clients' raw security events land in one workspace — contractually untenable for defence, government, or any regulated client |
+| **Blast radius** | A compromised Helix credential exposes one client's data for the PIM window duration | A compromised workspace admin exposes all clients' data simultaneously, with no time limit |
+| **Audit trail** | Each client's workspace has its own query audit log — forensic investigations are clean and unambiguous | All clients share one audit log — impossible to prove a Helix admin only accessed Client A's data, not Client B's |
+| **RBAC and access control** | Clean boundary — RBAC is a resource scope on a single LAW | Shared workspace requires resource-context access control, which has known limitations and adds operational complexity |
+| **Retention policy** | Per-client retention set at onboarding — different clients can have different policies without affecting each other | One retention setting for all — a client requiring 2-year compliance retention forces that cost on every client |
+| **Client trust and auditability** | Clients can verify that their data is in their own tenant under their own Azure controls | Clients must trust Helix's access controls — difficult to evidence in a due diligence review |
+| **Incident isolation** | A workspace misconfiguration or policy failure in one client does not affect others | One configuration error can affect all clients |
+| **Regulatory** | GDPR, HIPAA, and defence frameworks typically prohibit co-location of data across legal entities | Co-location would disqualify Helix from serving regulated clients entirely |
+
+**The bottom line:** Helix's target market is cybersecurity simulation for clients who take security seriously. Those clients will ask "where is my data?" and "who else can see it?" — and they will ask before signing. The isolated model answers both questions cleanly. The shared model cannot. The ~$2,100/month difference at 10 clients is roughly the cost of one client's monthly subscription in an appropriately-priced service — and it is the price of being able to serve the market at all.
 
 ---
 
@@ -136,3 +168,7 @@ When a client simulation environment is not running, its logging cost is effecti
 - **Commitment tier review** monthly — move to a higher commitment tier when volume stabilises above a threshold
 - **Budget alerts** per workspace tagged `billing-entity: client` — alert at 80% of expected monthly spend
 - **Archive policy** — after 90 days (Analytics) or 8 days (Basic), data moves to Archive automatically without manual intervention. Data is retained in Archive for up to 12 years from the original ingestion date, or until explicitly deleted — whichever comes first. The retention period is set per workspace at onboarding via the Pulumi module.
+
+---
+
+[← Team Impact](05-team-impact.md) &nbsp;|&nbsp; Next: [Automation →](07-automation.md)

@@ -46,7 +46,7 @@ This is the most complex ingestion path. Each client tenant is a separate Entra 
 | Microsoft 365 | Microsoft Sentinel M365 Defender / Purview connector | Per-client LAW |
 | Azure resource diagnostics | Azure Policy — `DeployIfNotExists` diagnostic settings | Per-client LAW |
 
-**NVA note:** Fortinet and pfSense both support CEF-format syslog output. A small Linux VM acts as the log forwarder — it receives syslog on UDP/514, normalises to CEF, and AMA forwards to the workspace. This is the standard pattern for network appliance log collection and avoids building custom parsers. The log forwarder VM is a single point of failure for NVA log collection; for production environments, two forwarder VMs with rsyslog load balancing eliminate this risk.
+**NVA note:** Fortinet and pfSense both support CEF-format syslog output. A small Linux VM acts as the log forwarder — it receives syslog, normalises to CEF, and AMA forwards to the workspace. This is the standard pattern for network appliance log collection and avoids building custom parsers. Availability and redundancy of the forwarder VM is addressed in the [Implementation Appendix](appendix.md).
 
 **M365 note:** The Microsoft Sentinel M365 connector ingests Unified Audit Log events, Defender for Office 365 alerts, and Entra sign-in/audit logs from the client's M365 tenant. This requires the client's M365 Global Administrator to grant delegated consent to Helix's Sentinel managed application — a one-time step captured during the onboarding pipeline. Microsoft Sentinel must be enabled on the client workspace for this connector; see [Sentinel on all client workspaces](#sentinel-on-all-client-workspaces) below.
 

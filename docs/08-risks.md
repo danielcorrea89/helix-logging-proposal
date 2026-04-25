@@ -80,4 +80,19 @@ The federated model with PIM/JIT and Policy enforcement is the most defensible o
 
 ---
 
-[← Automation](07-automation.md) &nbsp;|&nbsp; [← Home](../README.md)
+## Disaster Recovery and Data Backup
+
+The logging platform is an observability layer — its loss degrades visibility but does not stop the simulation platform from operating. That context shapes the recovery posture.
+
+**Log data recovery:**
+Client Log Analytics Workspaces have immutable storage configured — data cannot be deleted within the retention period, protecting against accidental or malicious deletion. Azure Log Analytics Workspaces are not directly restorable from backup in the traditional sense; Microsoft provides 99.9% SLA on workspace availability. For high-sensitivity clients, cross-region workspace replication via Azure Monitor workspace data export to Azure Storage is recommended as an additional control.
+
+**Infrastructure recovery:**
+All workspace configuration, DCRs, policy assignments, Lighthouse delegations, and Sentinel rules are defined in Pulumi code and stored in version control. Recovery of a misconfigured or deleted workspace is a pipeline re-run — not a manual rebuild. Pulumi state is managed in Pulumi Cloud, which provides its own backup and versioning.
+
+**Managing tenant outage:**
+If Helix's managing tenant is unavailable, client log *collection* continues unaffected — data flows directly into each client's own LAW with no dependency on Helix. Only cross-tenant querying (Sentinel, Workbooks, admin PIM access) is degraded. Clients retain read access to their own workspace throughout any Helix outage.
+
+---
+
+[← Automation](07-automation.md) &nbsp;|&nbsp; Next: [Implementation Appendix →](appendix.md) &nbsp;|&nbsp; [← Home](../README.md)

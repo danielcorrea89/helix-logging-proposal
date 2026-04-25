@@ -40,7 +40,7 @@ flowchart LR
     CLT --> CLAWS
 
     SLAW --> SENT
-    CLAWS -. "Lighthouse + PIM/JIT\ncross-tenant query · data stays in client tenant" .-> SENT
+    SENT -. "Lighthouse + PIM/JIT\ncross-tenant query · data stays in client tenant" .-> CLAWS
 
     SLAW --> DEV
     SENT --> SEC
@@ -72,9 +72,13 @@ The simulation orchestration and infrastructure layer runs on Azure, in Helix's 
 | Simulation Engine (Python + Temporal) | Workflow execution events, task logs, simulation lifecycle events |
 | Azure Container Apps | Container logs, HTTP request logs, scaling events |
 | Entra ID | Sign-in logs, audit logs, RBAC change events, conditional access signals |
-| Pulumi / GitHub | Deployment audit trail (out of scope for runtime logging — tracked separately) |
+| Azure platform resources | Resource Manager activity logs, subscription-level events, diagnostic signals |
+| GitHub Actions | CI/CD pipeline execution logs, deployment audit trail |
+| Pulumi Cloud | IaC stack state changes, deployment history |
 
-These are also Helix-owned. Native Azure Monitor integration applies throughout.
+These are also Helix-owned. Native Azure Monitor integration applies throughout. GitHub Actions and Pulumi Cloud are treated as **deployment infrastructure** rather than runtime telemetry — their audit logs inform security and compliance investigations but are not in the primary operational log stream.
+
+**Frontend / browser-side telemetry:** The brief references "website/frontend" as a shared component. This proposal treats the web-facing layer as covered by Cloudflare (CDN/WAF access logs) and Django/Python (application and request logs). Browser-side JavaScript errors and performance metrics are out of scope for this architecture — they require a separate RUM (Real User Monitoring) integration that does not share the same collection path as the infrastructure and security telemetry addressed here.
 
 ### Client Azure Tenants — Isolated, per client
 Each client simulation environment is a dedicated Azure tenant. These are the most complex sources.
@@ -123,6 +127,9 @@ The following assumptions are made explicitly. A different answer to any of thes
 - **Clients access their own logs directly:** The "Clients" persona implies paying clients have a scoped read path into their own event data — not mediated entirely by Helix staff.
 - **Greenfield:** No existing SIEM or log aggregation assumed. The architecture is designed as a target state, not a migration.
 - **Scale assumption for cost modelling:** 10–20 client tenants generating 5–20 GB/day each. Numbers are illustrative; the tiering model applies at any scale.
+- **Browser-side / RUM telemetry is out of scope:** The brief references "website/frontend" as a shared component. This proposal covers the web-facing layer via Cloudflare (CDN, WAF, access logs) and Django/Python (application and request logs). Browser-side JavaScript errors, Core Web Vitals, and user session telemetry require a separate Real User Monitoring (RUM) integration and are not addressed here — they do not share a collection path with the infrastructure and security telemetry in scope.
+- **GitHub and Pulumi Cloud as audit sources:** These are treated as deployment infrastructure audit trails rather than primary operational telemetry. Their logs are captured in the Basic tier and are available for security investigations, but they are not in the primary operational log stream alongside runtime and security events.
+- **Presentation scope:** The assignment requests a high-level solution with emphasis on technologies chosen and how each addresses the stated requirements. Low-level deployment details are captured in the [Implementation Appendix](appendix.md) and are not part of the main proposal flow.
 
 ---
 

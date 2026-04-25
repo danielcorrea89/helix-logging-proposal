@@ -134,16 +134,9 @@ The value of Lighthouse is proportional to the security of the managing tenant. 
 
 ## Pipeline Identity Model
 
-Pipelines must not hold broad standing privilege. The deployment model uses narrow, purpose-scoped identities per trust boundary.
+Pipelines must not hold broad standing privilege. The deployment model uses narrow, purpose-scoped identities per trust boundary — one identity per job, none with more permission than that job requires. No pipeline identity can read log data; no read identity can modify infrastructure. These are never the same credential.
 
-| Identity | Purpose | Scope | Auth method |
-|---|---|---|---|
-| `id-shared-logging-deploy` | Deploy shared LAW, Sentinel, workbooks | `Contributor` on Shared LAW resource group | Workload Identity Federation (GitHub Actions / Pulumi Cloud → Entra OIDC) |
-| `id-client-onboard` | Deploy Lighthouse registration + DCRs + Policy assignments in client tenant | `Contributor` on client LAW resource group + `Resource Policy Contributor` on client subscription (via Lighthouse) | Workload Identity Federation |
-| `id-client-read` (PIM group) | Query client workspaces for operational/incident use | `Log Analytics Reader` on client LAW (via Lighthouse) | Human PIM activation, not pipeline |
-| `id-ama-deploy` | Install AMA on client VMs | `Virtual Machine Contributor` on VM resource group | Workload Identity Federation |
-
-No identity has `Owner`, `Subscription Contributor`, or `Global Admin` by default. The Pulumi pipeline never needs to read log data — only deploy collection infrastructure.
+All pipeline authentication uses **Workload Identity Federation (OIDC)** — no long-lived secrets or client credentials stored anywhere. The full identity model with specific role assignments is in the [Implementation Appendix](appendix.md#pipeline-identity-model).
 
 ---
 
@@ -213,7 +206,7 @@ High-sensitivity clients receive:
 - **Approval-gated PIM activation:** PIM activation for their workspace requires a second approver, not just MFA
 - **Dedicated cost attribution:** Separate budget alert thresholds and billing entity tags
 
-The tier is set in the Pulumi `ClientConfig` as `tier="high-sensitivity"` and controls which features the `ClientLoggingBaseline` component provisions.
+The tier is configured at onboarding time and controls which features are provisioned for that client. See [Automation](07-automation.md) and the [Implementation Appendix](appendix.md) for how this is expressed in the provisioning component.
 
 ---
 

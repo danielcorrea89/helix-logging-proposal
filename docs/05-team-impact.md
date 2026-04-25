@@ -78,6 +78,8 @@ Pipeline identities are scoped narrowly per purpose. There are no broad-privileg
 
 This setup allows the DevOps team to iterate on simulation environments without touching core client log data, while the Security team retains oversight via Azure Policy and PIM-gated access.
 
+**Initial investment:** The `ClientLoggingBaseline` component, the DCR definitions, the policy assignments, and the Sentinel rule library all need to be built before the first client is onboarded. This is a one-time foundation effort — estimated at several engineering weeks to implement and validate end-to-end — after which each additional client adds only minutes of pipeline runtime. The architecture is designed to reward that upfront investment at scale.
+
 ### Security — Blue Team
 
 The blue team gains the most operationally. Today, investigating an incident in a client environment likely requires either local credentials in that tenant or a context-switch to a different portal. With this architecture:
@@ -87,6 +89,8 @@ The blue team gains the most operationally. Today, investigating an incident in 
 3. Every query is logged — chain of custody for forensic investigations is clear
 
 The blue team also gains **Sentinel analytics rules** deployed consistently across all client environments. A detection that catches lateral movement in one client environment is automatically active in all of them.
+
+**Trade-off to be aware of:** PIM activation is not instant. From alert to first query on a client workspace is typically 2–5 minutes — the time to complete a PIM activation request, satisfy MFA, and have the role propagate. This is a deliberate security control, not a bug. For teams accustomed to always-on access to client environments, this is an adjustment. The mitigation is pre-activating PIM at the start of a shift when active incidents are expected, rather than activating reactively mid-investigation.
 
 ### Security — Red Team
 
@@ -117,6 +121,8 @@ Developers access the Shared LAW for shared component debugging (Django, simulat
 OpenTelemetry instrumentation in the Python simulation engine and Django backend provides **structured traces** — developers can correlate a slow simulation run with a specific Temporal workflow execution and the container logs from that ACA revision, without needing a privileged account.
 
 The OTel SDK is vendor-neutral. If Helix ever moves parts of the stack off Azure, the instrumentation layer stays the same and only the exporter endpoint changes.
+
+**What this asks of the software development team:** Integrating the OTel SDK into the Django backend and Temporal workers is a real code change — not a configuration toggle. It requires adding instrumentation at the request handler and workflow activity level, agreeing on a log schema, and exporting to the Azure Monitor Logs Ingestion API endpoint. This is a one-time integration with ongoing maintenance as new services are added. The benefit is that developers gain structured, queryable traces without needing elevated cloud permissions — a net productivity gain once the instrumentation is in place, but an upfront engineering commitment to get there.
 
 ---
 

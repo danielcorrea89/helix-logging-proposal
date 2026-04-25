@@ -24,40 +24,51 @@ flowchart LR
     end
 
     subgraph aze["Shared — Azure"]
-        SE["Simulation Engine\nPython + Temporal"]
-        ACA[Azure Container Apps]
-        ENTRA[Entra ID]
+        SE["Simulation Engine · Temporal"]
+        ACA["Container Apps · Entra ID"]
     end
 
-    subgraph ct["Client Tenants — isolated per client · data stays here"]
-        WIN[Windows VMs]
-        LIN[Linux / Ubuntu]
-        NVA["NVAs\nFortinet / pfSense"]
-        M365[Microsoft 365]
-        CLAWS[("Per-Client LAW\nOne per tenant\ndata never leaves")]
-        POL["Azure Policy\nDeployIfNotExists\ndeployed here by Pulumi via Lighthouse\nself-enforces for all existing + new resources"]
-        WIN & LIN & NVA -- "AMA + DCR" --> CLAWS
-        M365 -- "Purview connector" --> CLAWS
-        POL -. "auto-remediates\nany resource missing\ndiagnostic settings or AMA" .-> CLAWS
+    subgraph ct["Client Tenants — data stays here · never leaves"]
+        SRCC["Windows · Linux · NVA · M365"]
+        CLAWS[("Per-Client LAW\none per tenant")]
+        SRCC -- "AMA + DCR\nPurview connector" --> CLAWS
     end
 
-    subgraph xp["Helix Managing Tenant"]
-        SLAW["Shared LAW\nShared components"]
-        SENTINEL[Microsoft Sentinel]
-        WB[Workbooks / Dashboards]
+    subgraph helix["Helix Managing Tenant"]
+        SLAW[("Shared LAW")]
+        SENTINEL["Microsoft Sentinel\nWorkbooks · Analytics"]
+        SLAW --> SENTINEL
+    end
+
+    subgraph who["Who accesses what"]
+        DEV["Developers\nLog Analytics Reader\nShared LAW — platform tables only"]
+        SEC["IT Admins · Security\nPIM/JIT elevation required\nSentinel — shared + all client workspaces"]
+        CLI["Clients\nLog Analytics Reader\nin their own tenant\nWorkbooks deployed at onboarding"]
     end
 
     CF -- "Logpush" --> SLAW
     DJ -- "OTel SDK" --> SLAW
-    AWSC -- "CloudWatch → Firehose" --> SLAW
-    SE -- "OTel SDK" --> SLAW
-    ACA -- "Diagnostic Settings" --> SLAW
-    ENTRA -- "Audit / Sign-in" --> SLAW
+    AWSC -- "Firehose" --> SLAW
+    SE & ACA -- "OTel · Diagnostics" --> SLAW
 
-    SLAW --> SENTINEL
-    SLAW --> WB
-    CLAWS -. "Lighthouse + PIM/JIT\nread-only · audited\ncross-tenant query only" .-> SENTINEL
+    SLAW --> DEV
+    SENTINEL --> SEC
+    SENTINEL -. "Lighthouse delegation\nPIM/JIT required · read-only · audited\nSentinel queries out — data never moves" .-> CLAWS
+    CLAWS --> CLI
 ```
+
+---
+
+## How This Addresses Each Requirement
+
+| Requirement | Technology chosen | How |
+|---|---|---|
+| **All key systems captured** | Azure Monitor Agent, DCRs, OTel SDK, Cloudflare Logpush, Purview connector, Azure Policy | Dedicated ingestion path per source type; Azure Policy auto-deploys collection to new resources without manual intervention |
+| **Least privilege access** | Azure Lighthouse, Azure PIM/JIT, per-workspace RBAC | No standing cross-tenant access; JIT elevation required for every admin query; each persona scoped to only their data |
+| **Not cumbersome for admins** | Microsoft Sentinel, Azure Workbooks, cross-workspace KQL | Single Sentinel instance surfaces all environments; no per-tenant portal login; standardised query packs cover common investigations |
+| **Automated, maintainable by a small team** | Pulumi (Python), Temporal, Azure Policy | Client baseline is one Pulumi component instantiation; Policy self-heals coverage gaps; logging is a mandatory workflow step — never skipped |
+| **Flexible and scalable** | Pulumi ComponentResource, Azure Policy, ACA scale-to-zero | Adding a client is a Pulumi run; Policy covers new resources automatically; idle environments cost near-zero |
+| **Cost effective** | Log Analytics tiers (Analytics / Basic / Archive), DCR transformations | Logs routed to cheapest appropriate tier at ingestion; security events in Analytics, verbose logs in Basic |
 
 ---
 
@@ -127,20 +138,7 @@ flowchart TD
 ```
 
 > [!NOTE]
-> The logging baseline is a step in the existing **Temporal** orchestration workflow — not a separate manual process. Every environment that exists has a logging baseline. There is no path to a running simulation without one.
-
-```python
-baseline = ClientLoggingBaseline(
-    client_id="acme-corp",
-    config=ClientConfig(
-        subscription_id="...",
-        location="australiaeast",
-        tier="standard",        # or "high-sensitivity" for Private Link + extended detection rules
-        vm_resource_ids=[...],
-        m365_tenant_id="...",
-    )
-)
-```
+> Logging is not a separate onboarding task — it is a mandatory step in the same automated workflow that provisions the simulation environment. A client environment cannot be marked ready without a verified logging baseline. See [Automation](docs/07-automation.md) for the implementation detail.
 
 ---
 
@@ -156,3 +154,4 @@ baseline = ClientLoggingBaseline(
 | 6 | [Cost Model](docs/06-cost-model.md) | Log tier routing, per-client attribution, isolated vs shared comparison, scale-to-zero |
 | 7 | [Automation](docs/07-automation.md) | Pulumi ComponentResource pattern, Temporal integration, policy-as-code, drift detection |
 | 8 | [Risks & Mitigations](docs/08-risks.md) | Risk matrix, register, Lighthouse blast radius deep dive, residual risk acceptance |
+| — | [Implementation Appendix](docs/appendix.md) | Pulumi component code, Temporal activity detail, pipeline identity model — low-level reference |
