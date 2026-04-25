@@ -66,7 +66,7 @@ flowchart LR
 | **Least privilege access** | Azure Lighthouse, Azure PIM/JIT, per-workspace RBAC | No standing cross-tenant access; JIT elevation required for every admin query; each persona scoped to only their data |
 | **Not cumbersome for admins** | Microsoft Sentinel, Azure Workbooks, cross-workspace KQL | Single Sentinel instance surfaces all environments; no per-tenant portal login; standardised query packs cover common investigations |
 | **Automated, maintainable by a small team** | Pulumi (Python), Temporal, Azure Policy | Client baseline is one Pulumi component instantiation; Policy self-heals coverage gaps; logging is a mandatory workflow step — never skipped |
-| **Flexible and scalable** | Pulumi ComponentResource, Azure Policy, ACA scale-to-zero | Adding a client is a Pulumi run; Policy covers new resources automatically; idle environments cost near-zero |
+| **Flexible and scalable** | Pulumi ComponentResource, Azure Policy, Azure Container Apps (scale-to-zero) | Adding a client is a Pulumi run; Policy covers new resources automatically; idle environments cost near-zero — ACA scales containers down to zero when no simulation is running |
 | **Cost effective** | Log Analytics tiers (Analytics / Basic / Archive), DCR transformations | Logs routed to cheapest appropriate tier at ingestion; security events in Analytics, verbose logs in Basic |
 
 ---
