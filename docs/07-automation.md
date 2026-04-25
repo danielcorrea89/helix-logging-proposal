@@ -1,14 +1,14 @@
 [← Home](../README.md) &nbsp;|&nbsp; [← Cost Model](06-cost-model.md) &nbsp;|&nbsp; Next: [Risks →](08-risks.md)
 
-# 7 — Automation
+# 7 — Automation 🤖
 
-## Design Principle
+## 🎯 Design Principle
 
 A logging platform that requires manual steps to onboard each client tenant will not scale. The onboarding of a new client's logging baseline must be a **code execution**, not a project. Every configuration decision made once must apply everywhere, consistently, without drift.
 
 ---
 
-## Why Pulumi in Python
+## 🐍 Why Pulumi in Python
 
 Pulumi is already used across the platform for infrastructure provisioning. Python enables the client logging baseline to be expressed as a **reusable component class** — instantiated with client-specific parameters rather than copied and modified per deployment. This is the difference between a platform and a collection of scripts.
 
@@ -18,7 +18,7 @@ The full component code is in the [Implementation Appendix](appendix.md#pulumi-c
 
 ---
 
-## What the Automation Provisions
+## 📦 What the Automation Provisions
 
 A single component instantiation for a new client deploys the complete logging baseline:
 
@@ -33,9 +33,11 @@ One command. One consistent baseline. No portal clicks. No drift.
 
 ---
 
-## Onboarding Pipeline
+## 🚀 Onboarding Pipeline
 
 Every client environment is provisioned through a Temporal workflow — the same orchestration engine already used by the simulation engine. Logging is a mandatory step in that workflow, not an optional add-on. A client environment cannot be marked ready without a verified logging baseline.
+
+**Why Temporal and not a GitHub Actions pipeline:** Several onboarding steps are incompatible with a CI/CD pipeline model. The M365 consent request may wait up to 48 hours for a client admin response. Infrastructure retries may span minutes to hours. If a worker restarts mid-provisioning, the process must resume from where it stopped — not restart from scratch. GitHub Actions is the right tool for delivery pipelines triggered by repository events; Temporal is the right tool for durable, stateful processes that need to wait on external signals, recover from partial failures, and maintain execution state across restarts. The onboarding workflow is firmly in the second category.
 
 ```mermaid
 flowchart TD
@@ -62,7 +64,7 @@ flowchart TD
 
 ---
 
-## Policy as Code
+## ⚙️ Policy as Code
 
 Azure Policy assignments are deployed by the Pulumi component, not applied manually. Two effects enforce the baseline automatically:
 
@@ -74,7 +76,7 @@ Once deployed, policy runs natively inside the client tenant and self-enforces w
 
 ---
 
-## Dashboards and Query Packs as Code
+## 📊 Dashboards and Query Packs as Code
 
 Workbooks and saved KQL queries are deployed as Pulumi-managed resources. This means:
 
@@ -86,7 +88,7 @@ Three query packs cover the three personas: **client** (simulation events), **de
 
 ---
 
-## Detection Rule Lifecycle
+## 🔍 Detection Rule Lifecycle
 
 Sentinel analytics rules are deployed as code to all client workspaces. Coverage is tiered:
 
@@ -102,7 +104,7 @@ Rule changes go through a pull request review and are promoted to a test workspa
 
 ---
 
-## Platform Self-Monitoring
+## 📡 Platform Self-Monitoring
 
 The logging platform must monitor itself. A silent failure in the collection pipeline — a broken DCR, a stopped AMA agent, a lapsed Lighthouse delegation — leaves gaps that only become visible during an incident when the logs are needed most.
 
@@ -116,7 +118,7 @@ The logging platform must monitor itself. A silent failure in the collection pip
 
 ---
 
-## Drift Detection
+## 🔄 Drift Detection
 
 After onboarding, two mechanisms keep environments at baseline:
 

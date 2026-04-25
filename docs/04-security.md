@@ -1,14 +1,14 @@
 [← Home](../README.md) &nbsp;|&nbsp; [← Architecture](03-architecture.md) &nbsp;|&nbsp; Next: [Team Impact →](05-team-impact.md)
 
-# 4 — Security Controls
+# 4 — Security Controls 🛡️
 
-## Identity is the Load-Bearing Wall
+## 🔑 Identity is the Load-Bearing Wall
 
 Every security property of this architecture depends on the identity model being correct. A misconfigured RBAC assignment or an overly broad Lighthouse delegation scope would silently invalidate the isolation guarantees regardless of how carefully everything else is built. Security design starts here, not at the network layer.
 
 ---
 
-## Trust Boundaries
+## 🚧 Trust Boundaries
 
 Three distinct trust boundaries exist in this architecture. Each requires a different control posture.
 
@@ -58,7 +58,7 @@ flowchart TB
 
 ---
 
-## PIM / JIT Access Flow
+## ⏱️ PIM / JIT Access Flow
 
 ```mermaid
 sequenceDiagram
@@ -85,7 +85,7 @@ sequenceDiagram
 
 ---
 
-## Azure Lighthouse — What It Does and the Blast Radius
+## 🔦 Azure Lighthouse — What It Does and the Blast Radius
 
 Azure Lighthouse allows Helix to operate on resources in a client's Azure tenant using identities from Helix's own tenant. When a client deploys the Lighthouse registration (an ARM template deployed to their subscription), they grant specific RBAC roles at a specific scope to specific principals in Helix's tenant.
 
@@ -100,7 +100,7 @@ If a Helix managing tenant credential with Lighthouse delegation is compromised,
 
 ---
 
-## Lighthouse Blast Radius Mitigations
+## 🛡️ Lighthouse Blast Radius Mitigations
 
 ### 1. Scope delegation to the workspace, not the subscription
 
@@ -132,7 +132,7 @@ The value of Lighthouse is proportional to the security of the managing tenant. 
 
 ---
 
-## Pipeline Identity Model
+## 🤖 Pipeline Identity Model
 
 Pipelines must not hold broad standing privilege. The deployment model uses narrow, purpose-scoped identities per trust boundary — one identity per job, none with more permission than that job requires. No pipeline identity can read log data; no read identity can modify infrastructure. These are never the same credential.
 
@@ -140,7 +140,7 @@ All pipeline authentication uses **Workload Identity Federation (OIDC)** — no 
 
 ---
 
-## Azure Policy Enforcement
+## ⚙️ Azure Policy Enforcement
 
 Azure Policy assignments must live **inside the client's subscription** — Policy cannot govern resources cross-tenant. Helix deploys them there during onboarding via the `Resource Policy Contributor` Lighthouse delegation. Once deployed, the policy runs natively inside the client tenant and self-enforces without any ongoing Helix involvement.
 
@@ -156,7 +156,7 @@ Two policy types are applied at the client subscription level:
 
 ---
 
-## Log Integrity and Retention Controls
+## 🔒 Log Integrity and Retention Controls
 
 - **Immutable storage:** Client LAWs are configured with a lock that prevents log deletion for the retention period. Clients and Helix operators cannot delete historical entries retroactively.
 - **Private Link (high-sensitivity clients):** AMA on client VMs is configured to send data over Private Endpoints rather than public internet, keeping log traffic off the public network entirely. Standard-tier clients use public AMA endpoints; this is acceptable given TLS in transit and the value of the data.
@@ -164,7 +164,7 @@ Two policy types are applied at the client subscription level:
 
 ---
 
-## Shared LAW — Table-Level Access Boundaries
+## 📊 Shared LAW — Table-Level Access Boundaries
 
 The Shared LAW contains both developer-accessible telemetry and sensitive platform identity data. Developers holding `Log Analytics Reader` on the Shared LAW can read all tables unless table-level access control is applied.
 
@@ -179,7 +179,7 @@ This is enforced by configuring **workspace-level access mode** as `resource-con
 
 ---
 
-## Resource-Context Access Control
+## 🎯 Resource-Context Access Control
 
 Resource-context access control is a Log Analytics feature that restricts a user's query results to resources they have RBAC permissions on, without requiring a separate workspace per persona. It is used in two scenarios in this architecture:
 
@@ -189,7 +189,7 @@ Resource-context access control is a Log Analytics feature that restricts a user
 
 ---
 
-## High-Sensitivity Client Tier
+## ⭐ High-Sensitivity Client Tier
 
 Some clients require additional controls beyond the standard baseline. Helix designates a client as **high-sensitivity** when one or more of the following apply:
 

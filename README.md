@@ -1,8 +1,11 @@
-# Helix — Logging Platform Architecture Proposal
+# 🔐 Helix — Logging Platform Architecture Proposal
 
-**Created by:** Daniel Correa &nbsp;|&nbsp; **Date:** April 2026 &nbsp;
+> End-to-end **Azure logging platform** for a multi-tenant cybersecurity simulation company.
+> Designed around **federated collection, centralised governance, and zero standing access** across isolated client environments.
 
 ---
+
+## 🏗️ Architecture Overview
 
 Helix's platform spans shared AWS and Azure infrastructure alongside N isolated per-client Azure tenants. Before this is a logging problem, it is a **cross-tenant identity and trust problem**. A solution that collects everything without designing trust boundaries first creates security debt that compounds with every client onboarded.
 
@@ -11,36 +14,32 @@ This proposal recommends a **federated collection model with centralised governa
 > [!IMPORTANT]
 > **Design stance** — Centralise observability *control* and *search experience*. Do not centralise *risk*. Collect locally, govern centrally, access selectively.
 
----
-
-## Architecture Overview
-
 ```mermaid
 flowchart LR
-    subgraph aws["Shared — AWS"]
+    subgraph aws["Shared — AWS ☁️"]
         CF[Cloudflare]
         DJ[Django / Python]
         AWSC[Containers]
     end
 
-    subgraph aze["Shared — Azure"]
+    subgraph aze["Shared — Azure ⚙️"]
         SE["Simulation Engine · Temporal"]
         ACA["Container Apps · Entra ID"]
     end
 
-    subgraph ct["Client Tenants — data stays here · never leaves"]
+    subgraph ct["Client Tenants — data stays here · never leaves 🔒"]
         SRCC["Windows · Linux · NVA · M365"]
         CLAWS[("Per-Client LAW\none per tenant")]
         SRCC -- "AMA + DCR\nPurview connector" --> CLAWS
     end
 
-    subgraph helix["Helix Managing Tenant"]
+    subgraph helix["Helix Managing Tenant 🏢"]
         SLAW[("Shared LAW")]
         SENTINEL["Microsoft Sentinel\nWorkbooks · Analytics"]
         SLAW --> SENTINEL
     end
 
-    subgraph who["Who accesses what"]
+    subgraph who["Who accesses what 👤"]
         DEV["Developers\nLog Analytics Reader\nShared LAW — platform tables only"]
         SEC["IT Admins · Security\nPIM/JIT elevation required\nSentinel — shared + all client workspaces"]
         CLI["Clients\nLog Analytics Reader\nin their own tenant\nWorkbooks deployed at onboarding"]
@@ -59,7 +58,7 @@ flowchart LR
 
 ---
 
-## How This Addresses Each Requirement
+## ✅ How This Addresses Each Requirement
 
 | Requirement | Technology chosen | How |
 |---|---|---|
@@ -72,7 +71,7 @@ flowchart LR
 
 ---
 
-## Five Decisions That Drive Everything
+## 🎯 Five Decisions That Drive Everything
 
 | Decision | Choice | The wrong choice costs you |
 |---|---|---|
@@ -84,7 +83,7 @@ flowchart LR
 
 ---
 
-## Security at the Cross-Tenant Boundary
+## 🛡️ Security at the Cross-Tenant Boundary
 
 The most important security property of this architecture is that **no Helix user has standing read access to any client workspace**. Every cross-tenant query is JIT-elevated, time-limited, and fully audited.
 
@@ -116,13 +115,13 @@ sequenceDiagram
 
 ---
 
-## Onboarding a New Client
+## 🚀 Onboarding a New Client
 
 Every client environment gets the same logging baseline through the same code path. There are no manual steps.
 
 ```mermaid
 flowchart TD
-    START(["New client tenant"])
+    START(["New client tenant 🆕"])
 
     T1["Create Azure Tenant\nor accept existing credentials"]
     T2["Deploy Simulation Infrastructure\npulumi up — helix/simulation/client-N"]
@@ -130,7 +129,7 @@ flowchart TD
     T4{"Verify Ingestion\nAMA heartbeat · Policy compliance\nM365 connector active"}
     T5["Issue Client Access\nRBAC + Workbooks deployed in client tenant\nclient notified with portal URL"]
     ERR["Alert — Onboarding Incomplete\nplatform team notified"]
-    END(["Environment Active\nlogging live · client access granted"])
+    END(["Environment Active ✅\nlogging live · client access granted"])
 
     START --> T1 --> T2 --> T3 --> T4
     T4 -->|"Pass"| T5 --> END
@@ -142,7 +141,7 @@ flowchart TD
 
 ---
 
-## Explore the Full Proposal
+## 📚 Explore the Full Proposal
 
 | # | Section | What it covers |
 |---|---|---|

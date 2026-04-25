@@ -1,8 +1,8 @@
 [← Home](../README.md) &nbsp;|&nbsp; [← Automation](07-automation.md)
 
-# 8 — Risks and Mitigations
+# 8 — Risks and Mitigations ⚠️
 
-## Risk Matrix
+## 📊 Risk Matrix
 
 ```mermaid
 quadrantChart
@@ -29,7 +29,7 @@ quadrantChart
 
 ---
 
-## Risk Register
+## 📋 Risk Register
 
 | # | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|---|
@@ -46,7 +46,7 @@ quadrantChart
 
 ---
 
-## Deep Dive: Risk 1 — Lighthouse Blast Radius
+## 🔍 Deep Dive: Risk 1 — Lighthouse Blast Radius
 
 This is the only risk in the register that is both low probability and catastrophic in its potential impact. It deserves more than a table entry.
 
@@ -69,7 +69,7 @@ This is the only risk in the register that is both low probability and catastrop
 
 ---
 
-## Risk Acceptance Summary
+## ✅ Risk Acceptance Summary
 
 The residual risk profile of the recommended architecture is acceptable for a cybersecurity simulation platform. The dominant risks (Lighthouse blast radius, cost explosion) are both mitigated to a level where the probability × impact product is lower than the equivalent risks in the alternative architectures:
 
@@ -80,7 +80,7 @@ The federated model with PIM/JIT and Policy enforcement is the most defensible o
 
 ---
 
-## Disaster Recovery and Data Backup
+## 🔄 Disaster Recovery and Data Backup
 
 The logging platform is an observability layer — its loss degrades visibility but does not stop the simulation platform from operating. That context shapes the recovery posture.
 

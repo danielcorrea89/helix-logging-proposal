@@ -1,14 +1,14 @@
 [← Home](../README.md) &nbsp;|&nbsp; [← Options](02-options.md) &nbsp;|&nbsp; Next: [Security Controls →](04-security.md)
 
-# 3 — Recommended Architecture
+# 3 — Recommended Architecture 🏗️
 
-## Overview
+## 🗺️ Overview
 
 The architecture has four layers: **ingestion**, **storage**, **access**, and **governance**. Each is designed independently so that changes to one do not require redesigning the others.
 
 ---
 
-## Ingestion — How Logs Reach the Platform
+## 📥 Ingestion — How Logs Reach the Platform
 
 ### AWS Shared Components
 
@@ -54,7 +54,7 @@ This is the most complex ingestion path. Each client tenant is a separate Entra 
 
 ---
 
-## Storage — Workspace Topology
+## 🗄️ Storage — Workspace Topology
 
 ```mermaid
 flowchart TD
@@ -91,7 +91,7 @@ flowchart TD
 
 ---
 
-## Access — Who Can Query What
+## 🔑 Access — Who Can Query What
 
 Access paths are separated by persona. There is no shared admin account that spans all three.
 
@@ -105,7 +105,7 @@ Access paths are separated by persona. There is no shared admin account that spa
 
 ---
 
-## Client Access Experience
+## 👤 Client Access Experience
 
 Clients access their simulation event data directly in their own Azure tenant — no Helix account, no guest invitation required. The LAW is in the client's own Entra directory; clients already have access to that environment. Routing client access through Helix's tenant would add unnecessary complexity, create a dependency on Helix's availability, and contradict the architecture's principle that client data stays in the client tenant.
 
@@ -147,7 +147,7 @@ Raw security event details — account names, Sysmon process hashes, authenticat
 
 ---
 
-## Technology Choices and Rationale
+## ⚙️ Technology Choices and Rationale
 
 | Technology | Role | Why chosen |
 |---|---|---|

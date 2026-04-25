@@ -1,8 +1,8 @@
 [← Home](../README.md) &nbsp;|&nbsp; Next: [Options →](02-options.md)
 
-# 1 — Requirements
+# 1 — Requirements 📋
 
-## The Problem in Plain Language
+## 🔍 The Problem in Plain Language
 
 Helix needs a logging platform that captures telemetry from three structurally different environments, serves three audiences with different needs, and does so in a way that a small team can automate, extend, and afford as the client base grows.
 
@@ -10,7 +10,7 @@ The brief is deceptively concise. The complexity is in the **topology**: shared 
 
 ---
 
-## At a Glance
+## 🗺️ At a Glance
 
 ```mermaid
 flowchart LR
@@ -51,9 +51,9 @@ flowchart LR
 
 ---
 
-## Data Sources
+## 📡 Data Sources
 
-### Shared Components — AWS
+### ☁️ Shared Components — AWS
 Helix's web-facing and application tier runs on AWS.
 
 | Component | What it produces |
@@ -64,7 +64,7 @@ Helix's web-facing and application tier runs on AWS.
 
 These are Helix-owned and Helix-operated. No cross-tenant trust is needed. The collection challenge is bridging AWS → Azure observability.
 
-### Shared Components — Azure
+### ⚙️ Shared Components — Azure
 The simulation orchestration and infrastructure layer runs on Azure, in Helix's own tenant.
 
 | Component | What it produces |
@@ -80,7 +80,7 @@ These are also Helix-owned. Native Azure Monitor integration applies throughout.
 
 **Frontend / browser-side telemetry:** The brief references "website/frontend" as a shared component. This proposal treats the web-facing layer as covered by Cloudflare (CDN/WAF access logs) and Django/Python (application and request logs). Browser-side JavaScript errors and performance metrics are out of scope for this architecture — they require a separate RUM (Real User Monitoring) integration that does not share the same collection path as the infrastructure and security telemetry addressed here.
 
-### Client Azure Tenants — Isolated, per client
+### 🔒 Client Azure Tenants — Isolated, per client
 Each client simulation environment is a dedicated Azure tenant. These are the most complex sources.
 
 | Component | What it produces |
@@ -94,7 +94,7 @@ These are in **separate Entra directories**. Collection requires cross-tenant ac
 
 ---
 
-## Consumers and Their Needs
+## 👥 Consumers and Their Needs
 
 | Persona | Use case | What they actually need |
 |---|---|---|
@@ -106,7 +106,7 @@ The key design implication: **these three personas must never share the same acc
 
 ---
 
-## Success Criteria as Design Constraints
+## ✅ Success Criteria as Design Constraints
 
 | Success Criterion | Design Constraint |
 |---|---|
@@ -119,7 +119,7 @@ The key design implication: **these three personas must never share the same acc
 
 ---
 
-## Assumptions
+## 📌 Assumptions
 
 The following assumptions are made explicitly. A different answer to any of these would change specific implementation choices, not the overall architecture direction.
 

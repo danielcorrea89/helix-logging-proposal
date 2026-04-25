@@ -1,8 +1,8 @@
 [← Home](../README.md) &nbsp;|&nbsp; [← Security Controls](04-security.md) &nbsp;|&nbsp; Next: [Cost Model →](06-cost-model.md)
 
-# 5 — Team Impact
+# 5 — Team Impact 👥
 
-## Summary Matrix
+## 📊 Summary Matrix
 
 | Team | What changes | What they gain | What they own |
 |---|---|---|---|
@@ -16,7 +16,7 @@
 
 ---
 
-## Platform Layers and Ownership
+## 🏗️ Platform Layers and Ownership
 
 ```mermaid
 flowchart LR
@@ -62,15 +62,15 @@ flowchart LR
 
 ---
 
-## Narrative by Team
+## 📖 Narrative by Team
 
-### Infrastructure
+### 🏗️ Infrastructure
 
 The architecture gives the infrastructure team a **single repeatable pattern** for every client environment. Rather than configuring logging differently per client, onboarding produces the same baseline every time — one workspace, one set of DCRs, one Lighthouse delegation scope. Adding a new client is a Pulumi run, not a project.
 
 The infrastructure team retains ownership of the workspace topology decision (isolated vs shared) and can evolve it per client tier as the business requires. The architecture is designed to support both without rebuilding the collection layer.
 
-### DevOps
+### ⚙️ DevOps
 
 The DevOps team benefits most from the **policy-as-code enforcement model**. Once Azure Policy is deployed at the client subscription level, diagnostic settings and AMA are enforced automatically on new resources — the pipeline does not need to track every resource addition manually.
 
@@ -80,7 +80,7 @@ This setup allows the DevOps team to iterate on simulation environments without 
 
 **Initial investment:** The `ClientLoggingBaseline` component, the DCR definitions, the policy assignments, and the Sentinel rule library all need to be built before the first client is onboarded. This is a one-time foundation effort — estimated at several engineering weeks to implement and validate end-to-end — after which each additional client adds only minutes of pipeline runtime. The architecture is designed to reward that upfront investment at scale.
 
-### Security — Blue Team
+### 🔵 Security — Blue Team
 
 The blue team gains the most operationally. Today, investigating an incident in a client environment likely requires either local credentials in that tenant or a context-switch to a different portal. With this architecture:
 
@@ -92,7 +92,7 @@ The blue team also gains **Sentinel analytics rules** deployed consistently acro
 
 **Trade-off to be aware of:** PIM activation is not instant. From alert to first query on a client workspace is typically 2–5 minutes — the time to complete a PIM activation request, satisfy MFA, and have the role propagate. This is a deliberate security control, not a bug. For workflows that currently rely on always-on access to client environments, this introduces a short delay worth factoring into incident response planning. The mitigation is pre-activating PIM at the start of a shift when active incidents are expected, rather than activating reactively mid-investigation.
 
-### Security — Red Team
+### 🔴 Security — Red Team
 
 Red team operations depend on the fidelity of the simulation environment's telemetry. The architecture ensures:
 
@@ -102,19 +102,19 @@ Red team operations depend on the fidelity of the simulation environment's telem
 
 Red team exercise outcomes are only meaningful if the telemetry is comprehensive. Gaps in collection are gaps in detection capability — this architecture makes those gaps visible via Azure Policy compliance reporting.
 
-### Business / Finance
+### 💰 Business / Finance
 
 Every client workspace and resource is tagged with `client-id`, `environment`, and `simulation-tier`. Azure Cost Management subscription views slice costs per client automatically.
 
 The tiered log model (Analytics / Basic / Archive) means Helix is not paying Sentinel-tier prices for verbose simulation runtime logs that nobody queries. High-value security and audit events land in Analytics; verbose debug logs land in Basic (80% cost reduction per GB); historical compliance retention lands in Archive. Cost scales proportionally to client count and simulation volume, not faster.
 
-### Operations
+### 📊 Operations
 
 Operations teams access logs through **Workbooks** and **standardised KQL query packs** deployed as code. They do not need to know which workspace a client's data is in — the centralised Workbook queries across delegated workspaces transparently.
 
 For a small team, this removes the burden of maintaining bespoke per-client dashboards. One Workbook template, parameterised by client, serves all of them. Updates to the Workbook are deployed once and apply everywhere.
 
-### Software Development
+### 💻 Software Development
 
 Developers access the Shared LAW for shared component debugging (Django, simulation engine, ACA). They have `Log Analytics Reader` on the shared workspace and no access to client workspaces.
 

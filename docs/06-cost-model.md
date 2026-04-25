@@ -1,14 +1,14 @@
 [← Home](../README.md) &nbsp;|&nbsp; [← Team Impact](05-team-impact.md) &nbsp;|&nbsp; Next: [Automation →](07-automation.md)
 
-# 6 — Cost Model
+# 6 — Cost Model 💰
 
-## Design Principle
+## 🎯 Design Principle
 
 Not all logs have equal value. Charging Sentinel-tier prices for verbose container debug output is an avoidable tax on the platform. The cost model separates logs into three tiers based on access frequency and operational importance, then routes each category to the appropriate tier automatically at ingestion time via DCR transformations.
 
 ---
 
-## Log Tiers
+## 📊 Log Tiers
 
 | Tier | Azure product | Retention default | Per GB cost (approx.) | Use case |
 |---|---|---|---|---|
@@ -28,7 +28,7 @@ xychart-beta
 
 ---
 
-## Per-Source Tier Assignment
+## 📋 Per-Source Tier Assignment
 
 | Log category | Tier | Rationale |
 |---|---|---|
@@ -47,7 +47,7 @@ The full per-event-ID routing table is in the [Implementation Appendix](appendix
 
 ---
 
-## Where Each Log Category Lands
+## 🗺️ Where Each Log Category Lands
 
 ```mermaid
 flowchart LR
@@ -79,7 +79,7 @@ flowchart LR
     mid --> low
 ```
 
-## Billing Ownership
+## 💳 Billing Ownership
 
 The Log Analytics Workspace and Sentinel instance for each client are deployed **inside the client's Azure subscription**. This means the Azure invoice for that storage and compute lands on whichever billing account owns the subscription.
 
@@ -96,7 +96,7 @@ If a client brings their own Azure subscription, the onboarding contract must ex
 
 ---
 
-## Cost Comparison: Isolated vs Shared Workspaces (Option A vs Option B)
+## ⚖️ Cost Comparison: Isolated vs Shared Workspaces (Option A vs Option B)
 
 The architecture recommends one workspace per client (Option A). The following illustrates the cost difference against a shared workspace model (Option B) to show the trade-off explicitly. See [Options](02-options.md) for the full architectural comparison.
 
@@ -129,7 +129,7 @@ The ~15% cost difference is real. The table below lays out what that premium buy
 
 ---
 
-## Per-Client Cost Attribution
+## 🏷️ Per-Client Cost Attribution
 
 Every resource deployed by the Pulumi onboarding module is tagged:
 
@@ -144,7 +144,7 @@ Azure Cost Management filters by these tags to generate per-client cost reports.
 
 ---
 
-## Scale-to-Zero Properties
+## 📉 Scale-to-Zero Properties
 
 A key brief requirement is that the solution scales to zero where possible. The architecture supports this at every layer:
 
@@ -161,7 +161,7 @@ When a client simulation environment is not running, its logging cost is effecti
 
 ---
 
-## Cost Controls
+## 🔧 Cost Controls
 
 - **DCR transformation rules** filter noise before it lands in any table — the most effective cost lever available
 - **Table-level Basic Logs** designation applied to verbose tables on workspace creation

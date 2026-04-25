@@ -1,12 +1,12 @@
 [← Home](../README.md) &nbsp;|&nbsp; [← Requirements](01-requirements.md) &nbsp;|&nbsp; Next: [Architecture →](03-architecture.md)
 
-# 2 — Options
+# 2 — Options 🔀
 
 Three architecturally distinct approaches were considered. They differ primarily in **where logs are stored** and **how cross-tenant access is managed** — the two decisions that drive the most downstream consequences.
 
 ---
 
-## Option A — Federated Collection with Centralised Governance (Recommended)
+## ✅ Option A — Federated Collection with Centralised Governance (Recommended)
 
 **Principle:** Collect at the source. Store per tenant. Govern and query centrally with controlled delegation.
 
@@ -55,7 +55,7 @@ flowchart LR
 
 ---
 
-## Option B — Fully Centralised
+## ⚠️ Option B — Fully Centralised
 
 **Principle:** All logs flow into Helix-managed Log Analytics Workspaces. Client tenants push data out.
 
@@ -90,7 +90,7 @@ The core issue is blast radius. If Helix's central workspace is compromised, an 
 
 ---
 
-## Option C — Security-First Hybrid
+## 🔶 Option C — Security-First Hybrid
 
 **Principle:** Centralise only security and compliance events. Keep application and platform logs local.
 
@@ -127,7 +127,7 @@ Option C is a strong cost-optimisation variant of Option A for mature deployment
 
 ---
 
-## Comparison Matrix
+## 📊 Comparison Matrix
 
 | Criterion | Option A — Federated | Option B — Centralised | Option C — Security-First |
 |---|---|---|---|
@@ -142,7 +142,7 @@ Option C is a strong cost-optimisation variant of Option A for mature deployment
 
 ---
 
-## Recommendation
+## 🎯 Recommendation
 
 > [!IMPORTANT]
 > **This proposal recommends Option A — Federated Collection with Centralised Governance.** The other options are documented to show the trade-offs considered, not as alternatives with equal standing.
