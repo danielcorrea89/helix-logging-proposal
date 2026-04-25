@@ -377,6 +377,45 @@ TALKING POINTS
 
 ---
 
+# 🗳️ Decisions for the team
+
+| Team | Decision needed |
+|---|---|
+| **Infrastructure** | Workspace layout, naming, regions, retention defaults |
+| **DevOps** | Pulumi owns full baseline vs shared modules only |
+| **Security** | PIM window duration · approval flow · Sentinel rule coverage per tier |
+| **Business** | Client log visibility commitments · contractual retention |
+| **Ops / Finance** | Cost guardrails · ingestion budgets · archive policy |
+| **Software Dev** | Structured log schema · correlation IDs · telemetry standards |
+
+<!--
+TALKING POINTS
+- This architecture recommends — it does not decide for the team
+- Each of these has a right answer that depends on context only the team has
+- The point of this session is to surface these, not to leave with an approved RFC
+- Ask: "Which of these does the team want to tackle first?"
+-->
+
+---
+
+# 💬 Discussion points
+
+1. **Product events vs operational logs** — should simulation event data live in Log Analytics only, or also in a product-facing event store?
+2. **Basic vs Analytics routing** — which logs are mandatory for Sentinel detection? Basic logs cannot feed analytics rules.
+3. **PIM window** — 4-hour default. Security posture vs operational convenience — where does the team land?
+4. **Client access UX** — Azure Workbooks in their tenant, or product-embedded UI?
+5. **Temporal from day one?** — or start with Pulumi modules and add orchestration at scale?
+6. **Retention as a commercial commitment** — which periods are contractual vs convenience?
+
+<!--
+TALKING POINTS
+- These are not rhetorical — they need answers before implementation
+- Raise them now so the team leaves with action items, not just a deck
+- You do not need to have the answers — surfacing the right questions is the job
+-->
+
+---
+
 <!-- _class: lead invert -->
 <!-- _paginate: false -->
 
@@ -384,7 +423,6 @@ TALKING POINTS
 # Centralise **visibility**.
 # Never centralise **risk**.
 
-*Full proposal → github.com/danielcorrea89/helix-logging-proposal*
 
 <!--
 TALKING POINTS

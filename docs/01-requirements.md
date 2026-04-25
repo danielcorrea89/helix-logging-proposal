@@ -119,6 +119,20 @@ The key design implication: **these three personas must never share the same acc
 
 ---
 
+## ⚠️ Product Event Data vs Operational Logs
+
+The brief describes clients consuming "event data related to the product." It is worth drawing a clear line between two different categories:
+
+**Operational logs** — for debugging, security, audit, and infrastructure visibility. These fit Azure Monitor, Log Analytics, Sentinel, and Workbooks naturally. This proposal addresses this category in full.
+
+**Product event data** — simulation lifecycle events, scenario outcomes, agent actions, and timeline data that clients consume as part of the product experience. Some of this can be surfaced through Log Analytics Workbooks (and the proposal does this for the client persona). However, if clients need rich querying, export, long-term analytics, or a polished product UI over this data, Log Analytics may not be the right canonical store — it is optimised for operational observability, not product reporting.
+
+The recommended approach: mirror product events into the client LAW for support and debugging visibility, while keeping the canonical product event stream in an application database or event store suited to product-facing queries. This avoids turning Log Analytics into the product reporting layer by accident.
+
+This distinction should be validated with the Business and Software Development teams before implementation.
+
+---
+
 ## 📌 Assumptions
 
 The following assumptions are made explicitly. A different answer to any of these would change specific implementation choices, not the overall architecture direction.
@@ -130,6 +144,22 @@ The following assumptions are made explicitly. A different answer to any of thes
 - **Browser-side / RUM telemetry is out of scope:** The brief references "website/frontend" as a shared component. This proposal covers the web-facing layer via Cloudflare (CDN, WAF, access logs) and Django/Python (application and request logs). Browser-side JavaScript errors, Core Web Vitals, and user session telemetry require a separate Real User Monitoring (RUM) integration and are not addressed here — they do not share a collection path with the infrastructure and security telemetry in scope.
 - **GitHub and Pulumi Cloud as audit sources:** These are treated as deployment infrastructure audit trails rather than primary operational telemetry. Their logs are captured in the Basic tier and are available for security investigations, but they are not in the primary operational log stream alongside runtime and security events.
 - **Presentation scope:** The assignment requests a high-level solution with emphasis on technologies chosen and how each addresses the stated requirements. Low-level deployment details are captured in the [Implementation Appendix](appendix.md) and are not part of the main proposal flow.
+
+---
+
+## 🔎 What I Would Validate in Discovery
+
+This proposal is designed as a target architecture based on the information available. The following questions would refine or change specific implementation choices before production onboarding begins:
+
+| Question | Why it matters |
+|---|---|
+| Expected GB/day per client, by log category | Drives commitment tier decisions and Basic vs Analytics routing — the cost model uses illustrative numbers |
+| Required retention period by log type and client | Determines Archive policy per workspace; some clients may have contractual minimums beyond the 90-day Analytics default |
+| Whether clients have data residency guarantees in their contracts | Confirms isolated workspace model is required vs optional; affects whether shared workspace tier is even on the table |
+| Whether Sentinel must run in every client workspace | Assumed yes (required for M365 connector); if some clients have no M365 or no detection requirement, Sentinel cost per workspace may be avoidable |
+| Whether clients want dashboards in Azure portal or embedded in a product UI | The proposal assumes Azure portal Workbooks; a product-embedded experience requires a different access and authentication model |
+| Whether any client tenants already exist with existing log infrastructure | The proposal assumes greenfield; a migration path requires assessing what stays, what gets replaced, and what overlaps |
+| Helix's billing model for client Azure subscriptions | Determines whether LAW costs flow through Helix service pricing or land directly on client Azure bills |
 
 ---
 

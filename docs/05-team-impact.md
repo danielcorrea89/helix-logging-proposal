@@ -126,4 +126,32 @@ The OTel SDK is vendor-neutral. If Helix ever moves parts of the stack off Azure
 
 ---
 
+## 🗳️ Decisions Required From the Team
+
+This architecture makes a recommendation, but several decisions belong to the team rather than to the proposal. These should be resolved before or during implementation.
+
+| Team | Decision needed |
+|---|---|
+| **Infrastructure** | Standard workspace layout, naming conventions, regions, retention defaults, and tenant onboarding pattern |
+| **DevOps** | Whether Pulumi owns the full observability baseline or only deploys shared modules consumed by tenant stacks |
+| **Security** | Required logs for detection vs troubleshooting, PIM activation duration, approval flow design, break-glass model, and Sentinel analytics rule coverage per client tier |
+| **Business** | Client-facing log visibility expectations and contractual commitments around data access, retention, and residency |
+| **Operations / Finance** | Monthly cost guardrails, ingestion budgets per client, archive policy, and alerting thresholds for abnormal log volume |
+| **Software Development** | Required structured logging fields, correlation ID conventions, severity standards, and application telemetry schema |
+
+---
+
+## 💬 Discussion Points
+
+Questions worth raising with the full team before committing to implementation:
+
+1. **Should client-facing event data live in Azure Monitor only, or also flow to a product analytics or event store?** Log Analytics is optimised for operational observability — not product reporting. If clients need rich query, export, or long-term analytics over their simulation event data, a separate product event pipeline may be warranted alongside the logging platform.
+2. **Which logs are mandatory for Sentinel detection versus troubleshooting only?** This determines Analytics vs Basic tier routing — and matters because Basic logs cannot be used for Sentinel analytics rules or automated detections.
+3. **What is the maximum acceptable PIM activation window for cross-tenant access?** The proposal uses a 4-hour default. Security posture may prefer shorter; operational convenience may prefer longer. The team should set this deliberately.
+4. **Should clients access their event data through Azure-native Workbooks, or through a product-embedded UI?** The proposal assumes Azure portal Workbooks deployed into the client tenant. A product-embedded experience is a different access and authentication model and should be decided early.
+5. **What retention periods are commercial commitments versus engineering convenience?** Some clients may have contractual minimums; others may not care. Per-client retention policy is a parameter, but the defaults need a business decision behind them.
+6. **Should onboarding be Temporal-orchestrated from day one, or start with Pulumi modules and add orchestration once client volume grows?** Temporal adds durability and external-signal handling; it also adds operational complexity. The team should decide at what scale that investment is justified.
+
+---
+
 [← Security Controls](04-security.md) &nbsp;|&nbsp; Next: [Cost Model →](06-cost-model.md)

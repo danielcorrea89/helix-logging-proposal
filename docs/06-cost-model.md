@@ -13,7 +13,7 @@ Not all logs have equal value. Charging Sentinel-tier prices for verbose contain
 | Tier | Azure product | Retention default | Per GB cost (approx.) | Use case |
 |---|---|---|---|---|
 | **Analytics** | Log Analytics — Analytics Logs | 90 days hot | ~$2.30/GB ingested | Security events, audit logs, product events — queried regularly, often within hours of ingestion |
-| **Basic** | Log Analytics — Basic Logs | 8 days hot | ~$0.50/GB ingested | Verbose app logs, container stdout, debug traces — queried occasionally, usually only during incidents |
+| **Basic** | Log Analytics — Basic Logs | 8 days hot | ~$0.50/GB ingested | Verbose app logs, container stdout, debug traces — queried occasionally, usually only during incidents. **Not supported for Sentinel analytics rules or automated detections** — anything required for alerting, audit, or client-facing reporting must land in Analytics. |
 | **Archive** | Log Analytics — Archive | Up to 12 years from ingestion | ~$0.02/GB/month | Compliance retention, historical forensics — rarely queried; restored on-demand for specific investigations |
 
 ```mermaid

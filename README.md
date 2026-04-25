@@ -5,7 +5,7 @@
 
 ---
 
-## 🏗️ Architecture Overview
+## 🔍 The Problem
 
 Helix's platform spans shared AWS and Azure infrastructure alongside N isolated per-client Azure tenants. Before this is a logging problem, it is a **cross-tenant identity and trust problem**. A solution that collects everything without designing trust boundaries first creates security debt that compounds with every client onboarded.
 
@@ -13,6 +13,10 @@ This proposal recommends a **federated collection model with centralised governa
 
 > [!IMPORTANT]
 > **Design stance** — Centralise observability *control* and *search experience*. Do not centralise *risk*. Collect locally, govern centrally, access selectively.
+
+---
+
+## 🏗️ Architecture Overview
 
 ```mermaid
 flowchart LR
@@ -111,7 +115,7 @@ sequenceDiagram
 ```
 
 > [!WARNING]
-> **Lighthouse blast radius is bounded by design.** A compromised Helix credential that also bypasses MFA can read all clients' log data for at most 4 hours. It cannot modify data, access resources outside Log Analytics, or escalate beyond the delegated read scope. This is the primary reason the architecture uses federated workspaces rather than a shared central store — the wrong model turns a credential compromise into a full data breach across every client with no time limit and no audit trail.
+> **Lighthouse blast radius is bounded by design.** If a Helix credential is compromised and MFA bypassed, the intended blast radius is read-only access within the active PIM window — assuming Lighthouse delegation is correctly scoped and no additional standing permissions exist. It cannot modify data, access resources outside Log Analytics, or persist beyond the PIM window without a new activation. This is the primary reason the architecture uses federated workspaces rather than a shared central store — the wrong model turns a credential compromise into a full data breach across every client with no time limit, no per-client isolation, and no audit trail.
 
 ---
 
@@ -145,12 +149,12 @@ flowchart TD
 
 | # | Section | What it covers |
 |---|---|---|
-| 1 | [Requirements](docs/01-requirements.md) | Problem decomposition, personas, success criteria as design constraints, assumptions |
-| 2 | [Options](docs/02-options.md) | Three architectural options with data-flow diagrams, comparison matrix, recommendation |
-| 3 | [Architecture](docs/03-architecture.md) | Ingestion paths per source, workspace topology, access model, technology choices |
-| 4 | [Security Controls](docs/04-security.md) | Trust boundaries, Lighthouse blast radius, PIM/JIT, pipeline identity model, Policy enforcement |
-| 5 | [Team Impact](docs/05-team-impact.md) | Layer ownership, impact narrative across Infrastructure, DevOps, Security, Business, Ops, Dev |
-| 6 | [Cost Model](docs/06-cost-model.md) | Log tier routing, per-client attribution, isolated vs shared comparison, scale-to-zero |
-| 7 | [Automation](docs/07-automation.md) | Pulumi ComponentResource pattern, Temporal integration, policy-as-code, drift detection |
-| 8 | [Risks & Mitigations](docs/08-risks.md) | Risk matrix, register, Lighthouse blast radius deep dive, residual risk acceptance |
+| 1 | [Requirements](docs/01-requirements.md) | Problem decomposition, data sources, personas, success criteria, product event data scope boundary, discovery questions, assumptions |
+| 2 | [Options](docs/02-options.md) | Three architectural options with data-flow diagrams, trade-off comparison, recommendation |
+| 3 | [Architecture](docs/03-architecture.md) | Ingestion paths per source, workspace topology, access model, client access experience, technology choices |
+| 4 | [Security Controls](docs/04-security.md) | Trust boundaries, Lighthouse blast radius, PIM/JIT, pipeline identity, Policy enforcement, high-sensitivity tier |
+| 5 | [Team Impact](docs/05-team-impact.md) | Per-team impact and ownership, open decisions required from the team, discussion points |
+| 6 | [Cost Model](docs/06-cost-model.md) | Log tier routing, billing ownership, isolated vs shared comparison, per-client attribution, scale-to-zero |
+| 7 | [Automation](docs/07-automation.md) | Pulumi pattern, Temporal vs GitHub Actions, onboarding pipeline, policy-as-code, self-monitoring, drift detection |
+| 8 | [Risks & Mitigations](docs/08-risks.md) | Risk matrix, register, Lighthouse blast radius deep dive, risk acceptance, disaster recovery |
 | — | [Implementation Appendix](docs/appendix.md) | Pulumi component code, Temporal activity detail, pipeline identity model — low-level reference |
