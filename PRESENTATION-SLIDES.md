@@ -342,25 +342,10 @@ TALKING POINTS
 
 # ⚠️ Risk landscape
 
-```mermaid
-quadrantChart
-    title Likelihood vs Impact
-    x-axis Low Likelihood --> High Likelihood
-    y-axis Low Impact --> High Impact
-    quadrant-1 Prioritise
-    quadrant-2 Mitigate
-    quadrant-3 Monitor
-    quadrant-4 Watch
-    Lighthouse Compromise: [0.15, 0.95]
-    Client Data Challenge: [0.15, 0.80]
-    Cost Explosion: [0.50, 0.80]
-    Inconsistent Onboarding: [0.45, 0.72]
-    Sentinel Cost Growth: [0.25, 0.55]
-    NVA Format Issues: [0.50, 0.42]
-    M365 Coverage Gaps: [0.45, 0.42]
-    AWS Log Latency: [0.20, 0.35]
-    Pulumi State Drift: [0.25, 0.35]
-```
+|  | **Low likelihood** | **High likelihood** |
+|---|---|---|
+| **High impact** | 🔴 Lighthouse compromise<br>🔴 Client data challenge | 🟠 Cost explosion<br>🟠 Inconsistent onboarding |
+| **Low impact** | 🟡 AWS log latency<br>🟡 Pulumi state drift | 🟡 NVA format issues<br>🟡 M365 coverage gaps |
 
 <!--
 TALKING POINTS
