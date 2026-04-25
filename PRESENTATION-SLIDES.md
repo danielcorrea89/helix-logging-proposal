@@ -1,9 +1,7 @@
----
-marp: true
-theme: gaia
-class: invert
-paginate: true
----
+<!-- marp: true -->
+<!-- theme: gaia -->
+<!-- class: invert -->
+<!-- paginate: true -->
 
 <!-- _class: lead invert -->
 <!-- _paginate: false -->
