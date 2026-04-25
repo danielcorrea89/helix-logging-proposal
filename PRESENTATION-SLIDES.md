@@ -340,10 +340,17 @@ TALKING POINTS
 
 # ⚠️ Risk landscape
 
-|  | **Low likelihood** | **High likelihood** |
-|---|---|---|
-| **High impact** | 🔴 Lighthouse compromise<br>🔴 Client data challenge | 🟠 Cost explosion<br>🟠 Inconsistent onboarding |
-| **Low impact** | 🟡 AWS log latency<br>🟡 Pulumi state drift | 🟡 NVA format issues<br>🟡 M365 coverage gaps |
+**🔴 High impact · Low likelihood — Mitigate**
+Lighthouse credential compromise · Client data residency challenge
+
+**🟠 High impact · High likelihood — Prioritise**
+Cost explosion from verbose ingestion · Inconsistent client onboarding
+
+**🟡 Medium impact · Medium likelihood — Watch**
+NVA log format issues · M365 connector coverage gaps
+
+**⚪ Low impact — Monitor**
+AWS log latency · Pulumi state drift · AMA NVA compatibility
 
 <!--
 TALKING POINTS

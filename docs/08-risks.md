@@ -4,26 +4,11 @@
 
 ## 📊 Risk Matrix
 
-```mermaid
-quadrantChart
-    title Likelihood vs Impact
-    x-axis Low Likelihood --> High Likelihood
-    y-axis Low Impact --> High Impact
-    quadrant-1 Prioritise
-    quadrant-2 Mitigate
-    quadrant-3 Monitor
-    quadrant-4 Watch
-    Lighthouse Compromise: [0.15, 0.95]
-    Client Data Challenge: [0.15, 0.80]
-    Sentinel Cost Growth: [0.25, 0.55]
-    AWS Log Latency: [0.20, 0.35]
-    Pulumi State Drift: [0.25, 0.35]
-    Cost Explosion: [0.50, 0.80]
-    Inconsistent Onboarding: [0.45, 0.72]
-    NVA Format Issues: [0.50, 0.42]
-    M365 Coverage Gaps: [0.45, 0.42]
-    AMA NVA Compat: [0.45, 0.20]
-```
+| | **Low likelihood** | **High likelihood** |
+|---|---|---|
+| **High impact** | 🔴 Lighthouse compromise<br>🔴 Client data challenge | 🟠 Cost explosion<br>🟠 Inconsistent onboarding |
+| **Medium impact** | 🟡 Sentinel cost growth<br>🟡 AWS log latency | 🟡 NVA format issues<br>🟡 M365 coverage gaps |
+| **Low impact** | ⚪ Pulumi state drift | ⚪ AMA NVA compatibility |
 
 > Lighthouse Compromise sits in the top-left — low probability, critical impact. The mitigations (PIM/JIT, scoped delegation, hardened managing tenant) are specifically designed to keep it there.
 
