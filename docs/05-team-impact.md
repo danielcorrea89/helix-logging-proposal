@@ -90,7 +90,7 @@ The blue team gains the most operationally. Today, investigating an incident in 
 
 The blue team also gains **Sentinel analytics rules** deployed consistently across all client environments. A detection that catches lateral movement in one client environment is automatically active in all of them.
 
-**Trade-off to be aware of:** PIM activation is not instant. From alert to first query on a client workspace is typically 2–5 minutes — the time to complete a PIM activation request, satisfy MFA, and have the role propagate. This is a deliberate security control, not a bug. For teams accustomed to always-on access to client environments, this is an adjustment. The mitigation is pre-activating PIM at the start of a shift when active incidents are expected, rather than activating reactively mid-investigation.
+**Trade-off to be aware of:** PIM activation is not instant. From alert to first query on a client workspace is typically 2–5 minutes — the time to complete a PIM activation request, satisfy MFA, and have the role propagate. This is a deliberate security control, not a bug. For workflows that currently rely on always-on access to client environments, this introduces a short delay worth factoring into incident response planning. The mitigation is pre-activating PIM at the start of a shift when active incidents are expected, rather than activating reactively mid-investigation.
 
 ### Security — Red Team
 

@@ -108,11 +108,11 @@ The architecture recommends one workspace per client (Option A). The following i
 | 1 shared workspace | 100 GB/day total | 100 GB/day commitment ~$1.96/GB | ~$5,880 | ~$6,300 | **~$12,180** |
 | **Difference** | | | | | **~$2,100/month (~15%)** |
 
-The saving grows at scale. At 30 clients (300 GB/day) the commitment tier discount reaches ~20–25% and the shared workspace qualifies for an **Azure Monitor Dedicated Cluster** (~$0.16/GB at 100+ GB/day), widening the gap further.
+The saving grows at scale. At 30 clients (300 GB/day) the commitment tier discount reaches 20–25% and the shared workspace qualifies for an **Azure Monitor Dedicated Cluster** (approx. $0.16/GB at 100+ GB/day), widening the gap further.
 
 ### Why the isolated model is the right choice despite the cost premium
 
-The ~15% cost difference is real. The reasons to pay it are also real:
+The ~15% cost difference is real. The table below lays out what that premium buys:
 
 | Reason | Isolated (Option A) | Shared (Option B) |
 |---|---|---|
@@ -125,7 +125,7 @@ The ~15% cost difference is real. The reasons to pay it are also real:
 | **Incident isolation** | A workspace misconfiguration or policy failure in one client does not affect others | One configuration error can affect all clients |
 | **Regulatory** | GDPR, HIPAA, and defence frameworks typically prohibit co-location of data across legal entities | Co-location would disqualify Helix from serving regulated clients entirely |
 
-**The bottom line:** Helix's target market is cybersecurity simulation for clients who take security seriously. Those clients will ask "where is my data?" and "who else can see it?" — and they will ask before signing. The isolated model answers both questions cleanly. The shared model cannot. The ~$2,100/month difference at 10 clients is roughly the cost of one client's monthly subscription in an appropriately-priced service — and it is the price of being able to serve the market at all.
+**The trade-off is explicit:** isolated workspaces cost approximately 15% more at 10 clients — around $2,100/month in this model. That premium buys clean data residency guarantees, a bounded blast radius, and per-client audit trails that are difficult to replicate in a shared model. For clients in regulated industries or with contractual data isolation requirements, those guarantees are likely non-negotiable. For others, the shared model remains a viable lower-cost option that Helix could offer as a distinct service tier if the business case supports it.
 
 ---
 

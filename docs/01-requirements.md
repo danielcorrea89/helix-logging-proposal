@@ -6,7 +6,7 @@
 
 Helix needs a logging platform that captures telemetry from three structurally different environments, serves three audiences with different needs, and does so in a way that a small team can automate, extend, and afford as the client base grows.
 
-The brief is deceptively concise. The complexity is in the **topology**: shared infrastructure sits alongside N isolated client tenants, each in a separate Azure Entra directory. Any solution that treats this as a flat collection problem will either violate tenant isolation or require standing privileged access across every client — both unacceptable outcomes.
+The brief is deceptively concise. The complexity is in the **topology**: shared infrastructure sits alongside N isolated client tenants, each in a separate Azure Entra directory. Any solution that treats this as a flat collection problem will either compromise tenant isolation or require standing privileged access across every client — both of which carry significant security and operational risk.
 
 ---
 

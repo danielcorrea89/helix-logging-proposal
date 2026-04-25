@@ -58,7 +58,7 @@ flowchart TD
 
 **M365 consent:** The M365 Defender/Purview connector requires the client's M365 Global Administrator to grant delegated consent to the platform's Sentinel managed application. This is a one-time, human action in the client's tenant. The workflow dispatches a consent URL to the client contact and waits for confirmation before proceeding. If consent is not granted within 48 hours, the platform team is alerted and the client environment is marked ready without M365 ingestion — Azure log collection is fully operational, and M365 can be enabled later when consent is obtained.
 
-**Onboarding failure handling:** If ingestion verification fails, the pipeline retries the logging baseline deployment with backoff (up to three attempts). Correctable failures — such as a policy compliance lag or a DCR propagation delay — typically resolve within minutes. If retries are exhausted, the platform team is paged and the client environment is held in a non-ready state. There is no path to a live simulation environment with a failed or unverified logging baseline.
+**Onboarding failure handling:** If ingestion verification fails, the pipeline retries the logging baseline deployment with backoff (up to three attempts). Correctable failures — such as a policy compliance lag or a DCR propagation delay — typically resolve within minutes. If retries are exhausted, the platform team is paged and the client environment is held in a non-ready state. A client environment is not marked ready until the logging baseline has been verified — this is the proposed gate, and the team should validate whether it fits the existing operational model.
 
 ---
 

@@ -145,9 +145,9 @@ Option C is a strong cost-optimisation variant of Option A for mature deployment
 ## Recommendation
 
 > [!IMPORTANT]
-> **This proposal recommends Option A — Federated Collection with Centralised Governance.** The rest of this document exists to show the reasoning; it is not a menu of equally valid choices.
+> **This proposal recommends Option A — Federated Collection with Centralised Governance.** The other options are documented to show the trade-offs considered, not as alternatives with equal standing.
 
-Option A is the only approach where tenant data boundaries hold even if Helix's central environment is compromised. For a cybersecurity platform whose clients are likely in security or defence, that property is non-negotiable — it is the foundation on which everything else is built.
+Option A is the approach where tenant data boundaries hold even if Helix's central environment is compromised. For a cybersecurity platform whose clients are likely in security or defence, that property is difficult to compromise on — it underpins the trust model on which everything else is built.
 
 Options B and C are documented for completeness and honesty:
 - **Option B** (shared workspace) is a cost-reduction variant considered for clients where contractual isolation is a preference, not a requirement. It is not the default. The [Cost Model](06-cost-model.md) quantifies the trade-off explicitly.
