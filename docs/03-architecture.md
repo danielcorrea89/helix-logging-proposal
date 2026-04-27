@@ -153,17 +153,23 @@ Raw security event details — account names, Sysmon process hashes, authenticat
 
 ## ⚙️ Technology Choices and Rationale
 
-| Technology | Role | Why chosen |
-|---|---|---|
-| Azure Monitor Log Analytics | Primary log store | Native Azure integration, commitment tier pricing, table-level RBAC, DCR transformations, Sentinel integration |
-| Azure Monitor Agent (AMA) | Collection agent on VMs | Replaces legacy MMA/OMS agents; centrally configured via DCRs; supports Linux and Windows |
-| Data Collection Rules (DCRs) | Ingestion configuration | Define what to collect, filter noise at source, transform on ingestion — reduces cost before data lands in the workspace |
-| Microsoft Sentinel | SIEM / security analytics | Native integration with M365, Entra, and LAW; analytics rules and playbooks managed as code; avoids a third-party SIEM that adds integration overhead |
-| Azure Lighthouse | Cross-tenant delegated access | Manages client tenants from Helix's tenant without creating accounts in each client — cleaner operating model, auditable, supports PIM |
-| OpenTelemetry | Application instrumentation | Vendor-neutral; works across AWS and Azure; structured traces and logs with consistent schema; no vendor lock-in at the SDK layer |
-| Cloudflare Logpush | WAF/CDN log collection | Native Cloudflare feature; no agent on Helix infrastructure; supports Azure Blob as destination |
-| Pulumi — Python | IaC and onboarding automation | Reusable `ComponentResource` classes model the client logging baseline as a product; conditional logic and loops in real Python, not DSL workarounds |
-| Azure Policy | Baseline enforcement | `DeployIfNotExists` and `AuditIfNotExists` enforce diagnostic settings and AMA deployment without manual intervention per resource |
+The summary below captures the primary reason each technology was chosen and the leading alternative it was selected over. **The full why-not analysis — including cost shape, operational impact, and trade-offs accepted — lives in [Decisions](09-decisions.md).**
+
+| Technology | Role | Why chosen | Leading alternative rejected |
+|---|---|---|---|
+| Azure Monitor Log Analytics | Primary log store | Native integration with Sentinel, Entra, and M365; commitment tier pricing; DCR transformations route at ingestion; three-tier model (Analytics / Basic / Archive) cuts cost on verbose data by ~78% | Self-hosted Elastic / OpenSearch — per-GB cheaper at scale but adds 1–2 FTE of cluster operations |
+| Azure Monitor Agent (AMA) | Collection agent on VMs | Centrally configured via DCRs, deployable by Azure Policy `DeployIfNotExists`, no per-VM config drift | Fluent Bit / Vector — more flexible processing, but per-VM config is exactly the drift this baseline avoids |
+| Data Collection Rules (DCRs) | Ingestion configuration | Filter and transform before data lands — the most cost-effective control because filtered data is never stored | Stream-processing layer (Cribl, Logstash) — adds a vendor and a hop for a problem DCRs already solve |
+| Microsoft Sentinel | SIEM / security analytics | First-party M365 / Entra / Defender connectors; analytics rules as code; same identity model as the rest of the platform | Splunk Cloud / Datadog Cloud SIEM — both require data egress and a second auth model into every client tenant |
+| Azure Lighthouse | Cross-tenant delegated access | Zero accounts in client tenants, RBAC-scoped, audited in both directions, PIM-eligible delegations | Guest accounts (N×M user explosion) or per-tenant SPNs (credential explosion) |
+| OpenTelemetry | Application instrumentation | Vendor-neutral — preserves the option to change backends without re-instrumenting every service | Application Insights SDK / Datadog APM — better APM UX but vendor-locks the *instrumentation*, not just the sink |
+| Cloudflare Logpush | WAF/CDN log collection | Push-based, gap-detected by Cloudflare, no agent on Helix infrastructure | API polling — re-implements Logpush at higher operational cost |
+| Pulumi — Python | IaC and onboarding automation | Python conditionals + `ComponentResource` model the per-client baseline as a typed class; Helix already runs Pulumi for simulation infra | Terraform (HCL) — same Azure provider quality, but per-client conditional logic reads poorly past a complexity threshold |
+| Temporal | Onboarding workflow orchestration | Durable execution survives worker restarts and waits days for human-in-the-loop signals (M365 consent) | GitHub Actions — right tool for code-triggered CI; wrong for stateful, long-lived workflows |
+| Azure Policy | Baseline enforcement | Runs natively *inside* the client tenant — no cross-tenant worker on the critical path; `DeployIfNotExists` self-heals new resources continuously | Custom Pulumi reconciler — needs Helix-side scheduling against every tenant, reintroducing the cross-tenant exposure Lighthouse limits |
+
+> [!NOTE]
+> See [Decisions](09-decisions.md) for the full per-technology breakdown including cost figures, operational impact, trade-offs accepted, and conditions under which each choice would be revisited.
 
 ---
 

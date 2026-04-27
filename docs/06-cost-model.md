@@ -129,6 +129,29 @@ The ~15% cost difference is real. The table below lays out what that premium buy
 
 ---
 
+## 🛒 Cost vs Third-Party SIEM / Logging Platforms
+
+The shared-vs-isolated comparison above measures the cost of one architectural choice *inside* the Azure-native stack. A second comparison is worth being explicit about: the chosen stack (Sentinel + LAW) versus alternative SaaS or self-hosted platforms that some teams use instead.
+
+**Assumptions:** 10 clients × 10 GB/day analytics-tier security logs = 100 GB/day aggregate. List pricing, USD, per month. Discounts available on every option but published rates are used for like-for-like comparison. Operational cost is a rough range for a small team running multi-tenant.
+
+| Stack | Per-GB shape | Approx. monthly platform cost | Operational cost | Total cost shape |
+|---|---|---|---|---|
+| **Sentinel + LAW (chosen)** | $2.30/GB Analytics + $2.46/GB Sentinel = ~$4.76/GB | ~$14,000/month at 100 GB/day | Low — fully managed, no clusters | Predictable, scales linearly with commitment-tier discounts |
+| **Splunk Enterprise Cloud** | List pricing materially higher per ingested GB at this volume tier (workload/SVC pricing varies); typically 1.5–3× Sentinel before negotiation | ~$25,000–$45,000/month at 100 GB/day | Low — fully managed | Strong detection-engineering ecosystem; second vendor relationship; data must leave the client tenant |
+| **Datadog Logs + Cloud SIEM** | $0.10/GB ingested + ~$1.27/GB-month indexing + $0.20/GB SIEM analytics = ~$1.50–2.50/GB equivalent for indexed retention | ~$8,000–$15,000/month at 100 GB/day, 15-day retention | Low — fully managed | Cheaper at lower volume; more expensive than Sentinel as indexed retention grows; data must leave the client tenant |
+| **Self-hosted Elastic / OpenSearch + Wazuh** | ~$0.05–0.20/GB-month storage; compute scales with shard count and query load | ~$2,000–$5,000/month infra at 100 GB/day | **High — 1–2 FTE** for cluster operations, upgrades, security hardening | Lowest *per-GB*; highest *total* once engineering cost is counted; misalignment with the "small team" brief |
+
+> The numbers above are list-price ballparks for shape comparison, not procurement quotes. Every vendor negotiates from list. The point is the **shape**: Sentinel sits in the middle on per-GB price but at the top on operational simplicity *and* identity-model alignment with the rest of the architecture. The full why-not analysis for each alternative is in [Decisions §1 — SIEM](09-decisions.md#1--siem-microsoft-sentinel).
+
+### What this cost picture is *not* measuring
+
+- **Egress.** Two of the three alternatives require log data to leave the client's Azure tenant for SaaS ingestion. That is a cost in *trust model*, not just dollars — it would invalidate the federated-collection guarantee that the architecture is built around.
+- **Connector engineering time.** Splunk, Datadog, and self-hosted ELK all require building or licensing M365 / Entra connectors that Sentinel includes natively. At multi-tenant scale, that is meaningful one-off and recurring engineering cost.
+- **Per-tenant attribution.** Sentinel + LAW per-tenant resources roll up cleanly into Azure Cost Management with the `client-id` tag. SaaS alternatives require either a separate org/account per client (operational overhead) or post-hoc usage attribution (audit overhead).
+
+---
+
 ## 🏷️ Per-Client Cost Attribution
 
 Every resource deployed by the Pulumi onboarding module is tagged:

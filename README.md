@@ -77,13 +77,15 @@ flowchart LR
 
 ## 🎯 Five Decisions That Drive Everything
 
-| Decision | Choice | The wrong choice costs you |
-|---|---|---|
-| **Collection model** | Federated — logs stay in each tenant | Centralising raw data means a Helix credential compromise exposes every client's raw data with no time bound, no per-client isolation, and no client-side revocation |
-| **Workspace topology** | One Log Analytics Workspace per client | A shared workspace with misconfigured RBAC leaks one client's security events to another |
-| **Cross-tenant access** | Azure Lighthouse + PIM/JIT — no standing privilege | Permanent cross-tenant admin access is a blast radius that never closes |
-| **IaC pattern** | Pulumi Python `ComponentResource` — client baseline as a class | Copy-paste configs drift silently; by client 10 every environment is slightly different |
-| **Log classification** | Three tiers: Analytics · Basic · Archive | Flat ingestion means paying Sentinel-tier prices for debug output nobody ever queries |
+| Decision | Choice | Chosen over | The wrong choice costs you |
+|---|---|---|---|
+| **Collection model** | Federated — logs stay in each tenant | Fully centralised in Helix's tenant; security-only hybrid | Centralising raw data means a Helix credential compromise exposes every client's raw data with no time bound, no per-client isolation, and no client-side revocation |
+| **Workspace topology** | One Log Analytics Workspace per client | Shared workspace with resource-context RBAC | A shared workspace with misconfigured RBAC leaks one client's security events to another |
+| **Cross-tenant access** | Azure Lighthouse + PIM/JIT — no standing privilege | Guest accounts (B2B) per admin × tenant; service principal per client tenant | Permanent cross-tenant admin access is a blast radius that never closes |
+| **IaC pattern** | Pulumi Python `ComponentResource` — client baseline as a class | Terraform HCL; Bicep/ARM | Copy-paste configs drift silently; by client 10 every environment is slightly different |
+| **Log classification** | Three tiers: Analytics · Basic · Archive | Flat single-tier ingestion | Flat ingestion means paying Sentinel-tier prices for debug output nobody ever queries |
+
+> Full per-decision rationale — alternatives considered, cost shape, operational impact, trade-offs accepted, when each choice would be revisited — is in [Decisions](docs/09-decisions.md).
 
 ---
 
@@ -157,4 +159,6 @@ flowchart TD
 | 6 | [Cost Model](docs/06-cost-model.md) | Log tier routing, billing ownership, isolated vs shared comparison, per-client attribution, scale-to-zero |
 | 7 | [Automation](docs/07-automation.md) | Pulumi pattern, Temporal vs GitHub Actions, onboarding pipeline, policy-as-code, self-monitoring, drift detection |
 | 8 | [Risks & Mitigations](docs/08-risks.md) | Risk matrix, register, Lighthouse blast radius deep dive, risk acceptance, disaster recovery |
+| 9 | [Decisions](docs/09-decisions.md) | Per-technology rationale: alternatives considered, why-not, cost shape, operational impact, trade-offs accepted, when to revisit |
 | — | [Implementation Appendix](docs/appendix.md) | Pulumi component code, Temporal activity detail, pipeline identity model — low-level reference |
+| — | [Presentation Slides](PRESENTATION-SLIDES.md) | Marp-formatted slide deck — condensed walkthrough of the proposal for the team-decision session |
