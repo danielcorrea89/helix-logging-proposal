@@ -62,6 +62,7 @@ Before any individual tool was chosen, the platform stack itself was a decision:
 - KQL is the only query language. Engineers familiar with SPL or ES|QL re-learn the syntax (small).
 - Detection-rule community is smaller than Splunk's. Mitigated by Sentinel's curated rule galleries and MITRE coverage.
 - Workspace-per-client + Sentinel-per-workspace means Sentinel-tier charges replicate per tenant. Mitigated by **rule-coverage tiering** (see [Automation §Detection Rule Lifecycle](07-automation.md#-detection-rule-lifecycle)) — standard clients receive a baseline rule set; high-sensitivity clients receive full coverage. The *enabling* of Sentinel is required for connectors and cross-workspace queries; the *cost* is dominated by analytics rule volume, not workspace count.
+- **Portal transition path:** Microsoft has announced that after 31 March 2027, Sentinel will no longer be supported in the Azure portal and operations will redirect to the Microsoft Defender portal. Implementation should target the Defender portal experience for Sentinel operations from day one — workbooks, query packs, and runbook URLs are portal-agnostic, but UX-level documentation (screenshots, walkthrough videos) should reflect the Defender portal.
 
 ### When to revisit
 
@@ -96,7 +97,7 @@ The cost model assumes verbose simulation logs (container stdout, NVA flow logs)
 ### Trade-offs accepted
 
 - **Basic Logs cannot back *scheduled* Sentinel analytics rules** — but Microsoft now supports **Summary Rules** (aggregate KQL over Basic, materialised into Analytics), so Basic is no longer dark to detection. Anything that needs *real-time* alerting still belongs in Analytics; anything that can tolerate a summary-rule cadence (typically minutes-to-hourly) can live in Basic. The per-source tier table (see [Cost Model §Per-Source Tier Assignment](06-cost-model.md#-per-source-tier-assignment)) reflects this split.
-- **Archive query has restore latency** (~hours for ad-hoc, < 12 minutes for search jobs). Not appropriate for live incident triage; appropriate for compliance and forensics.
+- **Archive query has restore/search latency that ranges from minutes to hours** depending on table size, time range, and query scope. Not appropriate for live incident triage; appropriate for compliance and forensics.
 - **Workspace migration is hard.** Mitigated by keeping schema-friendly OTel instrumentation upstream — the *producers* are portable.
 
 ---

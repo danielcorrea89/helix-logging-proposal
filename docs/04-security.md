@@ -156,6 +156,8 @@ The two threats this design must continuously defend against are **token theft i
 
 Three of the most load-bearing detections are reproduced here. The full rule set is deployed via Pulumi; see [Automation §Detection Rule Lifecycle](07-automation.md#-detection-rule-lifecycle) for promotion model.
 
+> Field names below (`AADObjectId_g`, `ResponseRowCount`, `OperationNameValue`, `Properties_d`, etc.) are representative and reflect typical Azure Monitor / Sentinel diagnostic schemas. Exact column names and casing should be validated against each target workspace's schema during implementation, since they vary across diagnostic-setting versions and table plans.
+
 **Detection 1 — Anomalous cross-client query volume from a PIM-elevated identity** (catches token theft inside an active PIM window):
 
 ```kql
@@ -262,7 +264,7 @@ Azure Policy assignments must live **inside the client's subscription** — Poli
 
 Two policy types are applied at the client subscription level:
 
-**`DeployIfNotExists` — Diagnostic Settings:** If any Azure resource — existing or newly created — lacks a diagnostic setting pointing to the client LAW, the policy engine deploys one automatically within minutes. This covers every resource type present at onboarding *and* any resource added to the client subscription afterwards. No Pulumi run required.
+**`DeployIfNotExists` — Diagnostic Settings:** If any Azure resource — existing or newly created — lacks a diagnostic setting pointing to the client LAW, the policy engine remediates automatically. In practice, remediation lands within minutes to hours depending on policy evaluation cadence and resource-provider timing — not real-time, but bounded and self-healing. This covers every resource type present at onboarding *and* any resource added to the client subscription afterwards. No Pulumi run required.
 
 **`DeployIfNotExists` — AMA on VMs:** Automatically deploys the Azure Monitor Agent extension to any VM missing it. Covers both VMs present at onboarding and VMs spun up later as the simulation environment grows.
 

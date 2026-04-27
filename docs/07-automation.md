@@ -68,7 +68,7 @@ flowchart TD
 
 Azure Policy assignments are deployed by the Pulumi component, not applied manually. Two effects enforce the baseline automatically:
 
-**`DeployIfNotExists` — Diagnostic Settings:** Any Azure resource in the client subscription that lacks a diagnostic setting pointing to the client LAW receives one automatically, within minutes. This covers resources present at onboarding and resources added months later — the platform team does not need to track individual additions.
+**`DeployIfNotExists` — Diagnostic Settings:** Any Azure resource in the client subscription that lacks a diagnostic setting pointing to the client LAW is remediated automatically by Policy. Remediation lands within minutes to hours depending on policy evaluation and resource-provider timing — bounded and self-healing, not real-time. This covers resources present at onboarding and resources added months later — the platform team does not need to track individual additions.
 
 **`DeployIfNotExists` — AMA on VMs:** Any VM in the client subscription without the Azure Monitor Agent extension receives it automatically. The onboarding workflow validates compliance before marking the environment ready.
 
