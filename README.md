@@ -143,7 +143,27 @@ flowchart TD
 ```
 
 > [!NOTE]
-> Logging is not a separate onboarding task — it is a mandatory step in the same automated workflow that provisions the simulation environment. A client environment cannot be marked ready without a verified logging baseline. See [Automation](docs/07-automation.md) for the implementation detail.
+> Logging is not a separate onboarding task — it is a mandatory step in the same automated workflow that provisions the simulation environment. A client environment cannot be marked ready without a verified Azure logging baseline. (M365 Defender ingestion is a downstream addition: if client-admin consent is delayed past 48 hours, the environment proceeds without it and the connector is enabled later — see [Automation](docs/07-automation.md#-onboarding-pipeline).)
+
+---
+
+## 🧭 Known Limitations and Operating-Readiness Gaps
+
+This is a target architecture, not an audit of a running system. Three things would be validated against real data before production rollout, and three boundaries are deliberate:
+
+**Validated against production data in the first month:**
+
+1. **SLO numbers are initial, not measured.** The targets in [Automation §Operating SLOs](docs/07-automation.md#-operating-slos--slis) — ≤5 min ingestion p95, ≥99% coverage, <5 min MTTD — are reasoned starting points. They become *measured* commitments after the first month of production data.
+2. **PIM window length.** The 4-hour default is conservative; the [worked incident](docs/04-security.md#-worked-incident--m365-admin-compromise-on-client-b) actually used about an hour. A 1h default with explicit extension would tighten the residual blast radius of token theft ([Risk #11](docs/08-risks.md#-risk-register)). This is policy, not architecture — adjustable as the team operates.
+3. **Detection rule pack tuning.** The standard pack is opinionated; the first month will reveal where it's over- or under-tuned, especially for NVA flow patterns and simulated red-team activity.
+
+**Deliberate boundaries (not gaps):**
+
+- Browser-side / RUM telemetry is out of scope (separate pipeline).
+- Multi-cloud client tenants (AWS / GCP) are out of scope — Lighthouse is Azure-only.
+- Archive-tier ad-hoc analysis is intentionally not supported (search-job / restore costs make it forensics-only).
+
+> Discovery questions to refine specific implementation choices are in [Requirements §What I Would Validate](docs/01-requirements.md#-what-i-would-validate-in-discovery).
 
 ---
 

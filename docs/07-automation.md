@@ -118,6 +118,25 @@ The logging platform must monitor itself. A silent failure in the collection pip
 
 ---
 
+## 📐 Operating SLOs / SLIs
+
+The platform commits to measurable observability service levels. These turn "small team can run it" into an operational contract — silent failure becomes a paged event, not a discovery during the next incident.
+
+| SLI | Initial SLO |
+|---|---|
+| **Log ingestion freshness** — p95 event-to-queryable latency | < 5 min for Analytics logs |
+| **Coverage** — % of required sources reporting heartbeat | ≥ 99% per client |
+| **Data-gap detection** — missing expected heartbeat or ingest window | Alert after 15–30 min |
+| **Onboarding verification** — baseline checks pass before "ready" | 100% required checks |
+| **Incident detection (MTTD)** — for baseline detection scenarios | < 5 min |
+| **Incident access** — PIM activation request to first cross-tenant query | < 10 min |
+
+**Error-budget policy:** the ingestion-freshness SLI runs against a 30-day rolling target. Sustained budget burn freezes non-critical platform changes until the underlying cause is resolved — implemented as a release-pipeline gate, not a manual policy. SLOs are **initial** by design — they are commitments to refine with real production data, not numbers to defend forever.
+
+**Runbooks are not optional.** A pull request adding a new Sentinel analytics rule fails the deploy if the rule does not include a `runbook_url`. This prevents the most common observability failure mode: rules that fire and then no-one knows what to do.
+
+---
+
 ## 🔄 Drift Detection
 
 After onboarding, two mechanisms keep environments at baseline:

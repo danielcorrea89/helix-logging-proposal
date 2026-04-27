@@ -52,7 +52,7 @@ Before any individual tool was chosen, the platform stack itself was a decision:
 
 | Alternative | Why not (here) |
 |---|---|
-| **Splunk Enterprise Cloud** | Strongest detection-engineering ecosystem, but: (a) list pricing is materially higher than Sentinel at the volumes Helix expects (Splunk SVC/ingest pricing vs. ~$4.76/GB combined Sentinel+LAW); (b) no first-party M365/Entra connector — requires a Splunk add-on that re-authenticates against Microsoft Graph, which would need its own service principal in every client tenant (the exact thing Lighthouse exists to avoid); (c) introduces a second vendor support relationship for the most security-critical part of the platform. |
+| **Splunk Enterprise Cloud** | Strongest detection-engineering ecosystem, but: (a) effective per-ingested-GB cost is materially higher than Sentinel at the volumes Helix expects — Splunk no longer publishes a flat per-GB list rate (workload/SVC pricing varies by data volume, retention, and feature mix), so this comparison is a reasoned estimate from public benchmarks rather than a list-vs-list quote; (b) no first-party M365/Entra connector — requires a Splunk add-on that re-authenticates against Microsoft Graph, which would need its own service principal in every client tenant (the exact thing Lighthouse exists to avoid); (c) introduces a second vendor support relationship for the most security-critical part of the platform. |
 | **Datadog Cloud SIEM** | Excellent UX and APM/SIEM correlation, but: (a) all log data must leave the client tenant and land in Datadog's region — directly conflicts with the federated data-residency model; (b) indexing+retention pricing makes per-client cost attribution opaque; (c) Datadog's Azure connector pulls via diagnostic settings — same M365 connector gap as Splunk. |
 | **Sumo Logic** | Continuous-tier pricing is competitive, but the same data-egress and connector-gap concerns apply as Datadog, plus a smaller Azure-aware feature set. |
 | **Self-hosted Elastic / OpenSearch + Wazuh** | Lowest *per-GB* storage cost, highest *operational* cost. Cluster operations (upgrades, hot/warm tiering, snapshot management, security hardening) are a 1–2 FTE responsibility at multi-tenant scale. The brief explicitly calls out a small team — this option spends the team's capacity on platform plumbing instead of detection engineering. |
@@ -95,7 +95,7 @@ The cost model assumes verbose simulation logs (container stdout, NVA flow logs)
 
 ### Trade-offs accepted
 
-- **Basic Logs cannot back Sentinel analytics rules.** Anything required for alerting or audit must be in Analytics — this is enforced in the per-source tier table (see [Cost Model §Per-Source Tier Assignment](06-cost-model.md#-per-source-tier-assignment)).
+- **Basic Logs cannot back *scheduled* Sentinel analytics rules** — but Microsoft now supports **Summary Rules** (aggregate KQL over Basic, materialised into Analytics), so Basic is no longer dark to detection. Anything that needs *real-time* alerting still belongs in Analytics; anything that can tolerate a summary-rule cadence (typically minutes-to-hourly) can live in Basic. The per-source tier table (see [Cost Model §Per-Source Tier Assignment](06-cost-model.md#-per-source-tier-assignment)) reflects this split.
 - **Archive query has restore latency** (~hours for ad-hoc, < 12 minutes for search jobs). Not appropriate for live incident triage; appropriate for compliance and forensics.
 - **Workspace migration is hard.** Mitigated by keeping schema-friendly OTel instrumentation upstream — the *producers* are portable.
 
@@ -125,7 +125,7 @@ The cost model assumes verbose simulation logs (container stdout, NVA flow logs)
 
 - **Lighthouse is Azure-only.** Doesn't help if a client lives in AWS or GCP. Out of scope for Helix's brief, but worth flagging if multi-cloud client tenants ever become a requirement.
 - **The delegation list itself is sensitive metadata** — knowing which clients exist is a valuable target. Mitigated by access controls on the managing-tenant subscription.
-- **Lighthouse depth is limited to specific resource providers**; not every Azure RBAC operation is delegatable. For *Log Analytics Reader* and *Resource Policy Contributor* the support is full.
+- **Lighthouse depth is limited to specific resource providers** — not every Azure RBAC operation is delegatable. The roles this architecture relies on (`Log Analytics Reader`, `Resource Policy Contributor`, `Monitoring Reader`, `Sentinel Contributor`) are fully supported. Notable gaps include some **Microsoft Defender for Cloud** subscription-scoped operations and **Entra-tenant-level** actions — these are managed via the client's own admins, not from Helix's tenant. This boundary is a feature, not a limitation: it bounds what a compromised Helix identity can do inside a client tenant.
 
 ---
 
@@ -144,7 +144,7 @@ The cost model assumes verbose simulation logs (container stdout, NVA flow logs)
 
 | Alternative | Why not (here) |
 |---|---|
-| **Terraform (HCL)** | Same Azure provider quality, larger ecosystem. The deciding factor is *language*: Helix's per-client logic (conditional Private Link for high-sensitivity clients, iterating over variable VM lists, computing DCR transformations from a typed config) is awkward in HCL — `for_each` + `dynamic` blocks read poorly past a certain complexity. Python expresses the same thing in straight code. |
+| **Terraform (HCL)** | Same Azure provider quality, larger ecosystem. The honest deciding factor is *organisational*: Helix already runs Pulumi for the simulation infrastructure and the team is Python-first. Adopting Terraform would split the deployment story across two IaC tools and add a language (HCL) the team would have to learn. The conditional/loop logic for per-client logic (Private Link toggle, variable VM lists, DCR transformations from typed config) is expressible in either tool — `for_each`/`dynamic` in HCL, plain Python in Pulumi — but expressing it in the language the team already uses keeps the cognitive load lower. If Helix were starting greenfield with no existing IaC, Terraform's larger module ecosystem would be a real factor on the other side. |
 | **OpenTofu** | Identical reasoning to Terraform. Plus: Helix already runs Pulumi for the simulation infrastructure; introducing a second IaC tool fragments the deployment story for marginal benefit. |
 | **Bicep / ARM** | Free, native, no provider drift. But: no cross-cloud (Helix has AWS components), weaker abstraction story than Pulumi's `ComponentResource`, and harder to do the "client baseline as a Python package" pattern this architecture relies on. |
 | **Crossplane** | Excellent for GitOps-driven multi-cluster Kubernetes. Wrong shape for one-shot per-tenant onboarding. |

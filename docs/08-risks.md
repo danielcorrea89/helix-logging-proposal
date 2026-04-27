@@ -4,13 +4,13 @@
 
 ## 📊 Risk Matrix
 
-| | **Low likelihood** | **High likelihood** |
-|---|---|---|
-| **High impact** | 🔴 Lighthouse compromise<br>🔴 Client data challenge | 🟠 Cost explosion<br>🟠 Inconsistent onboarding |
-| **Medium impact** | 🟡 Sentinel cost growth<br>🟡 AWS log latency | 🟡 NVA format issues<br>🟡 M365 coverage gaps |
-| **Low impact** | ⚪ Pulumi state drift | ⚪ AMA NVA compatibility |
+| | **Low likelihood** | **Medium likelihood** | **High likelihood** |
+|---|---|---|---|
+| **High impact** | 🔴 Lighthouse compromise<br>🔴 Client data challenge<br>🔴 Token theft in PIM window<br>🔴 Client-admin baseline teardown | 🟠 Cost explosion<br>🟠 Inconsistent onboarding<br>🟠 Silent under-collection | — |
+| **Medium impact** | 🟡 Sentinel cost growth<br>🟡 AWS log latency | 🟡 NVA format issues<br>🟡 M365 coverage gaps<br>🟡 Billing surprise (DCR) | — |
+| **Low impact** | ⚪ Pulumi state drift | ⚪ AMA NVA compatibility | — |
 
-> Lighthouse Compromise sits in the top-left — low probability, critical impact. The mitigations (PIM/JIT, scoped delegation, hardened managing tenant) are specifically designed to keep it there.
+> Lighthouse Compromise sits in the top-left — low probability, critical impact. The mitigations (PIM/JIT, scoped delegation, hardened managing tenant, Detections 1–3 in [Security](04-security.md#-sample-detection-rules)) are specifically designed to keep it there. Nothing in this stack is currently assessed as High likelihood; that is a positive signal of mitigation quality, not an absence of risk.
 
 ---
 
@@ -28,6 +28,10 @@
 | 8 | Pulumi state drift in long-lived client environments | Low | Medium | Weekly `pulumi refresh` in CI; Azure Policy continuous compliance evaluation; drift surfaced as PR diff for review |
 | 9 | AMA not supported on some NVA operating systems | Medium | Low | NVAs use syslog forwarding to a dedicated Linux log forwarder VM — AMA is only required on the forwarder, not the NVA itself |
 | 10 | Sentinel cost grows faster than expected at scale | Low | Medium | Sentinel is enabled on all client workspaces (required for M365 connector and cross-workspace analytics). Cost is controlled by tiering analytics rule coverage — standard clients get a baseline rule set only; high-sensitivity clients get full detection. Verbose tables (Basic Logs tier) do not incur Sentinel per-GB charges. |
+| 11 | Token theft inside an active PIM window | Low | High | CAE enabled to revoke sessions on risk signal; Detection 1 ([Security §Sample Detections](04-security.md#-sample-detection-rules)) flags anomalous cross-workspace query patterns and pages within minutes; default PIM window reduced to 1h with extension; session-level Conditional Access requires compliant device. Residual risk: a stolen token used inside the window before Detection 1 fires — bounded by query-volume baseline alerting. |
+| 12 | Malicious or compromised client-side admin tears down the baseline | Low | High | Detection 3 ([Security §Sample Detections](04-security.md#-sample-detection-rules)) pages on Policy / DCR / AMA / Lighthouse delete from any non-pipeline identity within 15 minutes; weekly Lighthouse delegation health probe; contractual obligation to maintain the baseline; Helix-managed subscription model where contractually feasible. |
+| 13 | Silent under-collection from buggy DCR transformation (events filtered out before landing) | Medium | High | DCR transformations promoted via the same test → production gate as Sentinel rules; weekly synthetic events injected per source class to verify end-to-end ingestion; per-table volume-anomaly alert (% delta from 7-day baseline) catches unexplained drops within hours. This is the worst class of failure (silent), so detection is layered. |
+| 14 | Billing surprise from a single misconfigured DCR (e.g. all events to Analytics) | Medium | Medium | Per-workspace budget alerts at 80% of expected; daily ingestion-volume anomaly alert (% delta from 7-day baseline) fires before the bill arrives; DCR changes deploy via PR with a cost-impact comment auto-attached by CI. |
 
 ---
 

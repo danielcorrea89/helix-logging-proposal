@@ -10,11 +10,13 @@ Not all logs have equal value. Charging Sentinel-tier prices for verbose contain
 
 ## 📊 Log Tiers
 
+Microsoft's current Azure Monitor framing splits log ingestion into three plans — **Analytics Logs**, **Basic Logs**, and **Auxiliary Logs** (in preview/GA depending on region) — plus the long-term **Archive** retention state. The architecture uses Analytics + Basic + Archive today; Auxiliary is on the watchlist as a candidate for the very-high-volume, very-low-value tier (e.g. NVA flow logs) once GA in target regions.
+
 | Tier | Azure product | Retention default | Per GB cost (approx.) | Use case |
 |---|---|---|---|---|
-| **Analytics** | Log Analytics — Analytics Logs | 90 days hot | ~$2.30/GB ingested | Security events, audit logs, product events — queried regularly, often within hours of ingestion |
-| **Basic** | Log Analytics — Basic Logs | 8 days hot | ~$0.50/GB ingested | Verbose app logs, container stdout, debug traces — queried occasionally, usually only during incidents. **Not supported for Sentinel analytics rules or automated detections** — anything required for alerting, audit, or client-facing reporting must land in Analytics. |
-| **Archive** | Log Analytics — Archive | Up to 12 years from ingestion | ~$0.02/GB/month | Compliance retention, historical forensics — rarely queried; restored on-demand for specific investigations |
+| **Analytics** | Log Analytics — Analytics Logs | 30 days hot (configurable to 2 years) | ~$2.30/GB ingested | Security events, audit logs, product events — queried regularly, often within hours of ingestion |
+| **Basic** | Log Analytics — Basic Logs | 30 days hot (interactive); long-term retention to 12 years | ~$0.50/GB ingested | Verbose app logs, container stdout, debug traces — queried occasionally, usually only during incidents. Real-time Sentinel **scheduled** analytics rules don't run on Basic; **Summary Rules** (aggregate KQL on Basic, materialised into Analytics) do, so Basic is no longer dark to detection — it just requires the summary-rule pattern. |
+| **Archive** | Log Analytics — Archive | Up to 12 years from ingestion | ~$0.02/GB/month | Compliance retention, historical forensics — rarely queried; search jobs / restore have additional cost (see *Cost Controls* below) |
 
 ```mermaid
 xychart-beta
@@ -102,11 +104,21 @@ The architecture recommends one workspace per client (Option A). The following i
 
 **Assumptions:** 10 clients, each generating 10 GB/day of analytics-tier logs. USD approximate prices.
 
-| Model | Daily volume | Rate | Monthly cost (Log Analytics) | Monthly cost (Sentinel) | **Total** |
-|---|---|---|---|---|---|
-| 10 isolated workspaces | 10 GB/day each | PAYG ~$2.30/GB | ~$6,900 | ~$7,380 | **~$14,280** |
-| 1 shared workspace | 100 GB/day total | 100 GB/day commitment ~$1.96/GB | ~$5,880 | ~$6,300 | **~$12,180** |
-| **Difference** | | | | | **~$2,100/month (~15%)** |
+**Formula** (visible — every figure in the table is reproducible from these three lines):
+
+```
+LAW monthly      = GB/day × LAW per-GB rate × 30
+Sentinel monthly = GB/day × Sentinel per-GB rate × 30
+Total monthly    = LAW monthly + Sentinel monthly
+```
+
+| Model | Daily volume | LAW rate | Sentinel rate | Monthly LAW | Monthly Sentinel | **Total** |
+|---|---|---|---|---|---|---|
+| 10 isolated workspaces | 10 GB/day × 10 | PAYG ~$2.30/GB | PAYG ~$2.46/GB | 10 × 10 × 2.30 × 30 = **~$6,900** | 10 × 10 × 2.46 × 30 = **~$7,380** | **~$14,280** |
+| 1 shared workspace | 100 GB/day | 100 GB commitment ~$1.96/GB | ~$2.10/GB | 100 × 1.96 × 30 = **~$5,880** | 100 × 2.10 × 30 = **~$6,300** | **~$12,180** |
+| **Difference** | | | | | | **~$2,100/month (~15%)** |
+
+> **Commitment tiers are billed on the *purchased* tier, not actual use** — buying a 200 GB/day tier and only consuming 120 GB/day still incurs the 200 GB/day spend. The recommended practice is to provision one tier below the rolling 30-day p95.
 
 The saving grows at scale. At 30 clients (300 GB/day) the commitment tier discount reaches 20–25% and the shared workspace qualifies for an **Azure Monitor Dedicated Cluster** (approx. $0.16/GB at 100+ GB/day), widening the gap further.
 
@@ -178,7 +190,7 @@ A key brief requirement is that the solution scales to zero where possible. The 
 | Kinesis Firehose (AWS) | Pay per GB — zero cost when no data flows |
 | OTel Collector | Deployed as ACA sidecar — scales with the application it instruments |
 | Lighthouse delegation | No cost — only metered when logs are actually queried |
-| Basic Logs tier | 8-day retention window self-clears; minimal storage cost for idle environments |
+| Basic Logs tier | Interactive retention (default 30 days) self-clears; minimal storage cost for idle environments |
 
 When a client simulation environment is not running, its logging cost is effectively zero. The per-client LAW retains historical data in Archive tier at ~$0.02/GB/month, but active ingestion costs drop to zero automatically.
 
@@ -190,7 +202,8 @@ When a client simulation environment is not running, its logging cost is effecti
 - **Table-level Basic Logs** designation applied to verbose tables on workspace creation
 - **Commitment tier review** monthly — move to a higher commitment tier when volume stabilises above a threshold
 - **Budget alerts** per workspace tagged `billing-entity: client` — alert at 80% of expected monthly spend
-- **Archive policy** — after 90 days (Analytics) or 8 days (Basic), data moves to Archive automatically without manual intervention. Data is retained in Archive for up to 12 years from the original ingestion date, or until explicitly deleted — whichever comes first. The retention period is set per workspace at onboarding via the Pulumi module.
+- **Archive policy** — after the interactive retention window expires (default 30 days for both Analytics and Basic, configurable per table), data moves to Archive automatically without manual intervention. Data is retained in Archive for up to 12 years from the original ingestion date, or until explicitly deleted — whichever comes first. The retention period is set per workspace at onboarding via the Pulumi module.
+- **Archive query cost** — search jobs against archived data are billed per GB scanned; full restores are billed per GB-day rehydrated with a 24h minimum. Archive is appropriate for forensics and compliance restore, **not** ad-hoc historical analysis.
 
 ---
 
