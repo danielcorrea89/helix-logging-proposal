@@ -1,4 +1,4 @@
-[← Home](../README.md) &nbsp;|&nbsp; [← Risks](08-risks.md)
+[← Home](../README.md) &nbsp;|&nbsp; [← Decisions](09-decisions.md)
 
 # Implementation Appendix
 
