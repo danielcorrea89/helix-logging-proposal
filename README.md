@@ -161,3 +161,4 @@ flowchart TD
 | 8 | [Risks & Mitigations](docs/08-risks.md) | Risk matrix, register, Lighthouse blast radius deep dive, risk acceptance, disaster recovery |
 | 9 | [Decisions](docs/09-decisions.md) | Per-technology rationale: alternatives considered, why-not, cost shape, operational impact, trade-offs accepted, when to revisit |
 | — | [Implementation Appendix](docs/appendix.md) | Pulumi component code, Temporal activity detail, pipeline identity model — low-level reference |
+| — | [Presentation Slides](PRESENTATION-SLIDES.md) | Marp-formatted slide deck — condensed walkthrough of the proposal for the team-decision session |

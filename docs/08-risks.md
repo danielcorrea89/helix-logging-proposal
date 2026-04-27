@@ -80,4 +80,4 @@ If Helix's managing tenant is unavailable, client log *collection* continues una
 
 ---
 
-[← Automation](07-automation.md) &nbsp;|&nbsp; Next: [Decisions →](09-decisions.md) &nbsp;|&nbsp; [← Home](../README.md)
+[← Automation](07-automation.md) &nbsp;|&nbsp; Next: [Decisions →](09-decisions.md)

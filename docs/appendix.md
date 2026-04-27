@@ -137,3 +137,7 @@ DCR transformation rules route each log category to its tier at ingestion, befor
 | Cloudflare WAF blocks and bot events | Analytics | Actionable security signals — small volume, high value |
 | Entra sign-in and audit logs | Analytics | Identity events — always relevant for security posture |
 | GitHub Actions / Pulumi Cloud audit | Basic | Deployment audit trail — queried during security investigations |
+
+---
+
+[← Decisions](09-decisions.md) &nbsp;|&nbsp; [↑ Home](../README.md)
