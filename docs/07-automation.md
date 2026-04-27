@@ -22,7 +22,7 @@ The full component code is in the [Implementation Appendix](appendix.md#pulumi-c
 
 A single component instantiation for a new client deploys the complete logging baseline:
 
-- **Log Analytics Workspace** — isolated, per-client, in the client's own tenant
+- **Log Analytics Workspace** — isolated, per-client, in the client's own tenant; `LAQueryLogs` diagnostic setting enabled so every KQL query against the workspace is recorded for audit
 - **Data Collection Rules** — configured for Windows, Linux, and CEF/syslog sources
 - **Azure Policy assignments** — diagnostic settings and AMA enforcement, self-healing
 - **Lighthouse registration** — read delegation to the Helix PIM group, scoped to the LAW resource group

@@ -86,7 +86,7 @@ The blue team gains the most operationally. Today, investigating an incident in 
 
 1. PIM activation from Helix's managing tenant provides time-limited read access to the client's workspace
 2. Cross-workspace queries from Sentinel surface client security events alongside shared platform signals
-3. Every query is logged — chain of custody for forensic investigations is clear
+3. Every PIM activation is recorded in Entra; `LAQueryLogs` on each client LAW captures the queries themselves — chain of custody for forensic investigations is clear
 
 The blue team also gains **Sentinel analytics rules** deployed consistently across all client environments. A detection that catches lateral movement in one client environment is automatically active in all of them.
 

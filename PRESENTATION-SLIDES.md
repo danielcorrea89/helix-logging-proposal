@@ -100,7 +100,7 @@ TALKING POINTS
 - This is the design stance in one line
 - Collect locally = data never leaves the tenant it belongs to
 - Govern centrally = one Sentinel, one Workbook layer, one place to manage rules
-- Access selectively = JIT elevation, time-limited, every query audited
+- Access selectively = JIT elevation, time-limited, every activation audited and per-query auditing enabled on each LAW
 - Every architecture decision flows from this principle
 -->
 
@@ -186,9 +186,9 @@ sequenceDiagram
 TALKING POINTS
 - No standing access — every query requires this flow
 - MFA at activation, not just at login
-- Every activation AND every query is logged immutably
+- Every activation goes to Entra audit; `LAQueryLogs` on each client LAW captures every KQL query
 - Pre-activate at shift start if expecting a live incident
-- Full chain of custody in both Helix and client Entra audit logs
+- Full chain of custody — activation records in Helix Entra, query records in the client workspace
 -->
 
 ---

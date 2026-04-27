@@ -117,8 +117,8 @@ The ~15% cost difference is real. The table below lays out what that premium buy
 | Reason | Isolated (Option A) | Shared (Option B) |
 |---|---|---|
 | **Data residency** | Each client's raw data stays inside their own Entra boundary — never co-located with another client's data | All clients' raw security events land in one workspace — contractually untenable for defence, government, or any regulated client |
-| **Blast radius** | A compromised Helix credential exposes one client's data for the PIM window duration | A compromised workspace admin exposes all clients' data simultaneously, with no time limit |
-| **Audit trail** | Each client's workspace has its own query audit log — forensic investigations are clean and unambiguous | All clients share one audit log — impossible to prove a Helix admin only accessed Client A's data, not Client B's |
+| **Blast radius** | A compromised Helix credential exposes client data only during the PIM window — read-only, time-bounded, client-revocable | A compromised workspace admin exposes all clients' data simultaneously, with no time limit |
+| **Audit trail** | Each client's workspace has its own `LAQueryLogs` audit table — forensic investigations are clean and unambiguous | All clients share one audit log — impossible to prove a Helix admin only accessed Client A's data, not Client B's |
 | **RBAC and access control** | Clean boundary — RBAC is a resource scope on a single LAW | Shared workspace requires resource-context access control, which has known limitations and adds operational complexity |
 | **Retention policy** | Per-client retention set at onboarding — different clients can have different policies without affecting each other | One retention setting for all — a client requiring 2-year compliance retention forces that cost on every client |
 | **Client trust and auditability** | Clients can verify that their data is in their own tenant under their own Azure controls | Clients must trust Helix's access controls — difficult to evidence in a due diligence review |

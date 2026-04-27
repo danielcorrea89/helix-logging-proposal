@@ -105,7 +105,7 @@ Access paths are separated by persona. There is no shared admin account that spa
 | **Developers / Engineers** | Shared LAW | Shared platform tables only | `Log Analytics Reader` on Shared LAW; no access to client workspaces |
 | **IT Admins / Security** | Shared LAW + Lighthouse-delegated client workspaces | All, with elevation | PIM-eligible `Log Analytics Reader` via Lighthouse; time-limited, approval-required, fully audited |
 
-**Admin access detail:** Helix admins do not have standing read access to client workspaces. Access is PIM-elevated on-demand, valid for a configurable time window (4-hour default), and every query is recorded in the Lighthouse audit log in Helix's Entra tenant. See [Security Controls](04-security.md).
+**Admin access detail:** Helix admins do not have standing read access to client workspaces. Access is PIM-elevated on-demand, valid for a configurable time window (4-hour default). PIM activations are recorded in Helix's Entra audit log; per-query auditing comes from `LAQueryLogs` enabled on each client LAW (see [Automation](07-automation.md)). See [Security Controls](04-security.md).
 
 ---
 
