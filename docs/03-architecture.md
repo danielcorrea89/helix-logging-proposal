@@ -71,14 +71,18 @@ flowchart TD
         direction TB
         SRCA["Windows · Linux · NVA · M365"]
         LAWA[("LAW — Client A\nSecurityEvent · Syslog\nCommonSecurityLog\nOfficeActivity")]
+        SENTA["Sentinel — Client A\nM365 connector\nanalytics rules"]
         SRCA --> LAWA
+        LAWA --> SENTA
     end
 
     subgraph cn["Client Tenant N"]
         direction TB
         SRCN["Windows · Linux · NVA · M365"]
         LAWN[("LAW — Client N\nSecurityEvent · Syslog\nCommonSecurityLog\nOfficeActivity")]
+        SENTN["Sentinel — Client N\nM365 connector\nanalytics rules"]
         SRCN --> LAWN
+        LAWN --> SENTN
     end
 
     LAWA -. "Lighthouse delegation\nPIM/JIT read" .-> SENT
@@ -87,7 +91,7 @@ flowchart TD
 
 **One workspace per client. No client's raw data ever enters a workspace shared with another client.**
 
-**One workspace per client tenant.** This is a deliberate choice. It keeps raw data inside the client's Entra boundary, makes RBAC straightforward, and means that a single compromised credential in Helix's managing tenant cannot expose all clients' raw security events simultaneously. See [Security Controls](04-security.md) for the Lighthouse access model.
+**One workspace per client tenant.** This is a deliberate choice. Raw data stays inside the client's Entra boundary, RBAC is straightforward (one workspace = one client = one set of readers), and there is no shared storage where a misconfiguration could leak one client's data into another's queries. The cross-tenant access path itself still has to be defended — see [Security Controls](04-security.md) for the Lighthouse + PIM/JIT model and the residual blast radius during an active PIM window.
 
 ---
 
@@ -111,7 +115,7 @@ Clients access their simulation event data directly in their own Azure tenant �
 
 ### How authentication works
 
-During onboarding, Pulumi (operating via Lighthouse, which holds `Contributor` on the client LAW resource group) deploys two things into the client's tenant:
+During onboarding, Pulumi (operating via Lighthouse, with `Contributor` on the client LAW resource group and `Resource Policy Contributor` at the client subscription for Policy assignments) deploys two things into the client's tenant:
 
 1. **RBAC assignment** — `Log Analytics Reader` on the client LAW, scoped to the client's own Entra users or groups. The client group object ID is provided as a parameter in the `ClientConfig` at onboarding time.
 2. **Client-facing Workbooks** — deployed directly into the client's resource group, pre-scoped to query only their LAW.

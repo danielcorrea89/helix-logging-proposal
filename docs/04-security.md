@@ -104,7 +104,7 @@ If a Helix managing tenant credential with Lighthouse delegation is compromised,
 
 ### 1. Scope delegation to the workspace, not the subscription
 
-The Lighthouse registration delegates `Log Analytics Reader` at the **resource group containing the client's LAW**, not at the subscription level. An attacker who compromises the delegated credential can read that workspace — they cannot enumerate subscriptions, modify resources, or access other resource groups.
+Within each client tenant, the Lighthouse registration delegates `Log Analytics Reader` at the **resource group containing the client's LAW**, not at the subscription level. An attacker who activates the delegation cannot enumerate the client's subscription, modify resources, or pivot to other resource groups — they see only log data in the delegated workspace. Cross-tenant exposure (the same delegation existing in every client) is addressed separately by the PIM/JIT control in §2.
 
 ### 2. No standing privilege — PIM-eligible delegation only
 

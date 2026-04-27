@@ -18,7 +18,7 @@
 
 | # | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|---|
-| 1 | Lighthouse / managing tenant credential compromise | Low | Critical | PIM/JIT — no standing access; narrow delegation scope (LAW read only); hardened managing tenant; break-glass separation |
+| 1 | Lighthouse / managing tenant credential compromise | Low | Critical | PIM/JIT bounds the time window; per-tenant scope limited to the LAW resource group (read-only); hardened managing tenant; break-glass separation. Cross-tenant exposure during the PIM window is the residual risk — see deep dive below. |
 | 2 | Cost explosion from verbose simulation log ingestion | Medium | High | DCR filtering before ingestion; Basic Logs tier for verbose tables; budget alerts per client; archive after retention window |
 | 3 | Inconsistent client onboarding creates logging gaps | Medium | High | Pulumi `ComponentResource` — all clients get same baseline; Policy `DeployIfNotExists` fills gaps for new resources; Temporal workflow enforces logging as a gate |
 | 4 | NVA log format inconsistency across Fortinet/pfSense versions | Medium | Medium | Standardise on CEF output format; log forwarder VM normalises before AMA; test per NVA model during client onboarding validation |

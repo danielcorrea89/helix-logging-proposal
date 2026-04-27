@@ -79,7 +79,7 @@ flowchart LR
 
 | Decision | Choice | The wrong choice costs you |
 |---|---|---|
-| **Collection model** | Federated — logs stay in each tenant | Centralising raw data means one compromised Helix credential exposes every client simultaneously |
+| **Collection model** | Federated — logs stay in each tenant | Centralising raw data means a Helix credential compromise exposes every client's raw data with no time bound, no per-client isolation, and no client-side revocation |
 | **Workspace topology** | One Log Analytics Workspace per client | A shared workspace with misconfigured RBAC leaks one client's security events to another |
 | **Cross-tenant access** | Azure Lighthouse + PIM/JIT — no standing privilege | Permanent cross-tenant admin access is a blast radius that never closes |
 | **IaC pattern** | Pulumi Python `ComponentResource` — client baseline as a class | Copy-paste configs drift silently; by client 10 every environment is slightly different |
