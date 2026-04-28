@@ -128,7 +128,125 @@ The value of Lighthouse is proportional to the security of the managing tenant. 
 | Conditional Access on admin paths | Require MFA + compliant device + named location for all PIM activations |
 | Separate admin identities | Platform operators use a separate cloud-only admin account — not their day-to-day identity |
 | Break-glass accounts | Two emergency-access accounts with permanent `Global Admin`, excluded from Conditional Access, MFA hardware-bound, credentials stored in physical safe, alert on any use |
+| Break-glass exercise cadence | Quarterly tabletop verifies the alert fires and the audit trail captures the access. Annual full-exercise: actual sign-in followed by credential rotation and re-seal. Findings drive Conditional Access exclusions review. |
 | No client secrets in pipelines | All pipeline authentication uses Workload Identity Federation (OIDC) — no long-lived secrets |
+
+---
+
+## 🎯 Threat Model — Cross-Tenant Boundary
+
+The architecture's most valuable asset is **cross-tenant read access to N clients' security telemetry from a single managing tenant**. The threat model below enumerates realistic attacker goals against that asset, not generic STRIDE categories. Each row names the specific detection that fires and the residual mitigation.
+
+| Attacker | Goal | Path | Detection | Mitigation |
+|---|---|---|---|---|
+| Compromised Helix engineer (credential theft, no MFA bypass) | Read one client's security data | Phish creds → log in to managing tenant → no PIM activation possible without MFA | Entra sign-in risk; failed PIM activation | MFA-required PIM; Conditional Access on PIM activation |
+| Compromised Helix engineer (token theft inside an active PIM window) | Exfiltrate cross-client logs during the window | Steal session token (e.g. malware on dev workstation) → use existing PIM grant → high-volume KQL across multiple client LAWs | Detection 1 (below); CAE token-revocation events | Reduce default PIM window to 1h; CAE; session-level CA; per-identity query-volume baseline |
+| Malicious or compromised Helix deploy SP | Disable detection in client tenants | Use deploy-tier `Contributor` to drop DCRs, detach AMA, delete Policy assignments | Detection 3 (below); Policy compliance drop | Deploy SP scoped to LAW resource group; OIDC short-lived tokens; alert on any DCR/Policy write outside an approved Pulumi run |
+| Malicious client-side admin | Tear down the baseline (delete AMA, drop Policy, remove Lighthouse) | Native Owner in their own tenant | Detection 3; weekly Lighthouse delegation health probe | Contractual obligation to maintain the baseline; Helix-managed subscription model where feasible; alert pages on first event |
+| External attacker on client side | Pivot from compromised client workload to logs | Compromise client VM → attempt to query LAW | RBAC-blocked query in `LAQueryLogs`; `SecurityEvent` 4624 anomaly | Client RBAC scoped to product tables only; AMA does not require workload→LAW credentials; Private Link for high-sensitivity clients |
+| Supply-chain compromise (Pulumi provider, AMA extension, Sentinel content pack) | Backdoor every onboarded client | Compromised package executed by deploy SP across tenants | OIDC anomaly; `AzureActivity` resource-create deviation from the latest Pulumi plan | Pin provider versions; verify checksums; staged rollout; review Sentinel content updates before adoption |
+| Insider with PIM eligibility | Bulk-exfiltrate one client's logs during a legitimate window | Activate PIM with valid justification → export large query result | Detection 1 (volume signal); result-export action audit | Per-user query-volume baseline; quarterly access review; cross-client query patterns reviewed in monthly hotwash |
+| Lost / stolen device with refresh token | Persist after credential rotation | Token replay before CAE catches up | CAE token-revocation event; sign-in geo anomaly | CAE enabled; device compliance required (Conditional Access); short refresh-token lifetime |
+
+The two threats this design must continuously defend against are **token theft inside an active PIM window** (the active residual of Risk 1) and **a malicious client-side admin** silently disabling collection. Both are addressed by the explicit detections below and by Risks #12–13 in [Risks](08-risks.md#-risk-register).
+
+---
+
+## 🔍 Sample Detection Rules
+
+Three of the most load-bearing detections are reproduced here. The full rule set is deployed via Pulumi; see [Automation §Detection Rule Lifecycle](07-automation.md#-detection-rule-lifecycle) for promotion model.
+
+> Field names below (`AADObjectId_g`, `ResponseRowCount`, `OperationNameValue`, `Properties_d`, etc.) are representative and reflect typical Azure Monitor / Sentinel diagnostic schemas. Exact column names and casing should be validated against each target workspace's schema during implementation, since they vary across diagnostic-setting versions and table plans.
+
+**Detection 1 — Anomalous cross-client query volume from a PIM-elevated identity** (catches token theft inside an active PIM window):
+
+```kql
+LAQueryLogs
+| where TimeGenerated > ago(1h)
+| where AADObjectId_g in (PIMEligibleGroupMembers)
+| extend WorkspaceId = tostring(parse_json(ResourceUri).workspaceId)
+| summarize
+    DistinctClientWorkspaces = dcount(WorkspaceId),
+    TotalQueries            = count(),
+    MaxResultRows           = max(ResponseRowCount)
+    by AADObjectId_g, bin(TimeGenerated, 5m)
+| where DistinctClientWorkspaces >= 3
+   and TotalQueries > 50
+```
+
+*Trigger:* a single identity querying ≥ 3 distinct client workspaces with > 50 queries in a 5-minute window. Severity: Critical. SOAR playbook revokes the active session token via Microsoft Graph and pages on-call.
+
+**Detection 2 — PIM activation outside business hours on a privileged role** (catches off-hours credential abuse):
+
+```kql
+AuditLogs
+| where TimeGenerated > ago(24h)
+| where OperationName == "Add member to role completed (PIM activation)"
+| extend RoleName  = tostring(TargetResources[0].displayName)
+| extend Activator = tostring(InitiatedBy.user.userPrincipalName)
+| where RoleName in (
+      "Log Analytics Reader (Lighthouse)",
+      "Resource Policy Contributor",
+      "Security Administrator")
+| extend Hour = datetime_part("hour", TimeGenerated)
+| where Hour < 7 or Hour > 19 or dayofweek(TimeGenerated) in (0d, 6d)
+```
+
+*Trigger:* PIM activation of a privileged role outside 07:00–19:00 local or on weekends. Severity: High. Requires second-admin justification review within 1h or the activation is forcibly expired.
+
+**Detection 3 — Client-tenant baseline removal** (catches a malicious client-side admin or compromised deploy SP):
+
+```kql
+AzureActivity
+| where TimeGenerated > ago(15m)
+| where OperationNameValue in (
+      "Microsoft.Insights/dataCollectionRules/delete",
+      "Microsoft.Authorization/policyAssignments/delete",
+      "Microsoft.ManagedServices/registrationAssignments/delete",
+      "Microsoft.Compute/virtualMachines/extensions/delete")
+| where ActivityStatusValue == "Success"
+| where Caller !in (KnownPipelineDeployIdentities)
+| project TimeGenerated, Caller, OperationNameValue,
+          ResourceGroup = tostring(Properties_d.resource)
+```
+
+*Trigger:* delete operation against any logging-baseline resource by a non-pipeline identity. Severity: Critical. Pages on-call within 15 minutes; opens a contractual incident if the caller is the client's own admin identity.
+
+---
+
+## 📖 Worked Incident — M365 Admin Compromise on Client B
+
+Realistic execution path for the most common high-severity incident: a client's M365 Global Administrator account is compromised, and the attacker is creating mailbox forwarding rules to exfiltrate mail.
+
+| Time (UTC) | Event | System | Action |
+|---|---|---|---|
+| 02:14:03 | Anomalous sign-in for `admin@clientb.com` from RU IP, no compliant device | Entra ID Protection | Risk score: High; sign-in flagged |
+| 02:14:31 | `Set-Mailbox -ForwardingSmtpAddress` on 14 mailboxes via Graph | M365 → Client B `OfficeActivity` | Logged |
+| 02:18:12 | Ingestion latency p95 = 3m 12s; events visible in Client B LAW | LAW ingestion | n/a |
+| 02:18:42 | Sentinel rule `M365 — Bulk Mailbox Forwarding Rule Creation` fires (High) | Client B Sentinel | Incident auto-created |
+| 02:18:45 | Cross-workspace correlation `Identity Risk + M365 Action` fires (Critical) | Sentinel managing-tenant | Incident escalated; SOAR queued for approval |
+| 02:19:00 | On-call paged via PagerDuty | Helix on-call | Acknowledged (MTTD: 4m 57s) |
+| 02:21:30 | On-call activates `Log Analytics Reader (Lighthouse)` for Client B with justification; CA enforces FIDO2 MFA | Azure PIM | 1h activation granted; `AuditLogs` captures who/why |
+| 02:23:00 | On-call runs saved query pack `client-compromise-triage.kql` over last 6h `OfficeActivity` for the affected identity | Lighthouse → Client B LAW | Read-only; recorded in `LAQueryLogs` |
+| 02:27:00 | SOAR playbook approved — disables forwarding rules, revokes session tokens, blocks sign-in for the identity | Sentinel automation | Containment complete (MTTR: 8m from page) |
+| 02:35:00 | Client contact notified; evidence pack (queries + result archive) exported to immutable Azure Storage **in Client B's subscription** | Comms | Evidence preserved in client tenant |
+| 02:50:00 | `OfficeActivity` joined with `SigninLogs` and `AuditLogs` to confirm scope; no other identities affected | Lighthouse query | Scope confirmed |
+| 03:30:00 | Hotwash with on-call peer; PIM activation auto-expires | Helix on-call | No standing access remains |
+
+**SLOs exercised:**
+- Time-to-detect (event landed → analytic fires): **4m 39s** (target ≤ 5m)
+- Time-to-page (event landed → on-call paged): **4m 57s** (target ≤ 7m)
+- Time-to-contain (page → containment action): **8m** (target ≤ 15m for Critical)
+- Ingestion-latency p95 (`OfficeActivity`): **3m 12s** (target ≤ 5m)
+
+**What this design did well:**
+- Client B's data never left their tenant — evidence pack stayed inside the client's Entra boundary
+- On-call had no standing access — every query is in `LAQueryLogs` for Client B's subscription, attributable to a specific PIM activation
+- The same playbook works for any client without per-client engineering — Sentinel rules deploy by Pulumi to every workspace identically
+
+**Where the design got stretched:**
+- 4-hour default PIM window was longer than needed; reducing to 1h-default-with-extension would tighten the residual blast radius further (recommended PIM-policy change)
+- Cross-workspace correlation incurs ~30s latency premium vs single-workspace rules; acceptable for this case, marginal for active-exfiltration scenarios
 
 ---
 
@@ -146,7 +264,7 @@ Azure Policy assignments must live **inside the client's subscription** — Poli
 
 Two policy types are applied at the client subscription level:
 
-**`DeployIfNotExists` — Diagnostic Settings:** If any Azure resource — existing or newly created — lacks a diagnostic setting pointing to the client LAW, the policy engine deploys one automatically within minutes. This covers every resource type present at onboarding *and* any resource added to the client subscription afterwards. No Pulumi run required.
+**`DeployIfNotExists` — Diagnostic Settings:** If any Azure resource — existing or newly created — lacks a diagnostic setting pointing to the client LAW, the policy engine remediates automatically. In practice, remediation lands within minutes to hours depending on policy evaluation cadence and resource-provider timing — not real-time, but bounded and self-healing. This covers every resource type present at onboarding *and* any resource added to the client subscription afterwards. No Pulumi run required.
 
 **`DeployIfNotExists` — AMA on VMs:** Automatically deploys the Azure Monitor Agent extension to any VM missing it. Covers both VMs present at onboarding and VMs spun up later as the simulation environment grows.
 

@@ -104,7 +104,7 @@ Red team exercise outcomes are only meaningful if the telemetry is comprehensive
 
 ### 💰 Business / Finance
 
-Every client workspace and resource is tagged with `client-id`, `environment`, and `simulation-tier`. Azure Cost Management subscription views slice costs per client automatically.
+Every client workspace and resource is tagged with the canonical four-tag set: `client-id`, `environment`, `log-tier`, and `billing-entity` (matching [Cost Model §Per-Client Cost Attribution](06-cost-model.md#-per-client-cost-attribution)). Azure Cost Management subscription views slice costs per client automatically.
 
 The tiered log model (Analytics / Basic / Archive) means Helix is not paying Sentinel-tier prices for verbose simulation runtime logs that nobody queries. High-value security and audit events land in Analytics; verbose debug logs land in Basic (80% cost reduction per GB); historical compliance retention lands in Archive. Cost scales proportionally to client count and simulation volume, not faster.
 

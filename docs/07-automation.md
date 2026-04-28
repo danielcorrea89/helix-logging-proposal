@@ -68,7 +68,7 @@ flowchart TD
 
 Azure Policy assignments are deployed by the Pulumi component, not applied manually. Two effects enforce the baseline automatically:
 
-**`DeployIfNotExists` — Diagnostic Settings:** Any Azure resource in the client subscription that lacks a diagnostic setting pointing to the client LAW receives one automatically, within minutes. This covers resources present at onboarding and resources added months later — the platform team does not need to track individual additions.
+**`DeployIfNotExists` — Diagnostic Settings:** Any Azure resource in the client subscription that lacks a diagnostic setting pointing to the client LAW is remediated automatically by Policy. Remediation lands within minutes to hours depending on policy evaluation and resource-provider timing — bounded and self-healing, not real-time. This covers resources present at onboarding and resources added months later — the platform team does not need to track individual additions.
 
 **`DeployIfNotExists` — AMA on VMs:** Any VM in the client subscription without the Azure Monitor Agent extension receives it automatically. The onboarding workflow validates compliance before marking the environment ready.
 
@@ -115,6 +115,25 @@ The logging platform must monitor itself. A silent failure in the collection pip
 **Lighthouse delegation health:** Delegation registrations can expire or be revoked by the client. A scheduled weekly check validates that all expected Lighthouse delegations are still active and surfaces any that have lapsed or been removed.
 
 **Pipeline health:** GitHub Actions and Pulumi Cloud send workflow status to the Shared LAW. Failed onboarding or drift-correction pipeline runs generate alerts to the platform team before they become client-impacting issues.
+
+---
+
+## 📐 Operating SLOs / SLIs
+
+The platform commits to measurable observability service levels. These turn "small team can run it" into an operational contract — silent failure becomes a paged event, not a discovery during the next incident.
+
+| SLI | Initial SLO |
+|---|---|
+| **Log ingestion freshness** — p95 event-to-queryable latency | < 5 min for Analytics logs |
+| **Coverage** — % of required sources reporting heartbeat | ≥ 99% per client |
+| **Data-gap detection** — missing expected heartbeat or ingest window | Alert after 15–30 min |
+| **Onboarding verification** — baseline checks pass before "ready" | 100% required checks |
+| **Incident detection (MTTD)** — for baseline detection scenarios | < 5 min |
+| **Incident access** — PIM activation request to first cross-tenant query | < 10 min |
+
+**Error-budget policy:** the ingestion-freshness SLI runs against a 30-day rolling target. Sustained budget burn freezes non-critical platform changes until the underlying cause is resolved — implemented as a release-pipeline gate, not a manual policy. SLOs are **initial** by design — they are commitments to refine with real production data, not numbers to defend forever.
+
+**Runbooks are not optional.** A pull request adding a new Sentinel analytics rule fails the deploy if the rule does not include a `runbook_url`. This prevents the most common observability failure mode: rules that fire and then no-one knows what to do.
 
 ---
 
