@@ -1,0 +1,11 @@
+name: managed-tenant-foundation
+description: 'Creates:    - resource group    - Log Analytics Workspace    - Lighthouse registration definition    - Lighthouse registration assignment  Uses:    - managing tenant ID    - group object ID from program 1'
+runtime:
+  name: python
+  options:
+    toolchain: pip
+    virtualenv: venv
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: azure-python

@@ -1,0 +1,3 @@
+config:
+  azure-native:location: AustraliaEast
+  helix:operatorUserObjectId: <your-operator-user-object-id>

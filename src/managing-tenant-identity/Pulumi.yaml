@@ -1,0 +1,11 @@
+name: managing-tenant-identity
+description: 'Runs against: @gmail tenant  Creates:    - helix-lighthouse-readers group    - optional helix-lighthouse-operators group    - adds your @gmail user as member  Outputs:    - reader_group_object_id    - operator_group_object_id'
+runtime:
+  name: python
+  options:
+    toolchain: pip
+    virtualenv: venv
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: azure-python

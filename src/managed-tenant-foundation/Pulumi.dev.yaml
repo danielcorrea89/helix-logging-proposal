@@ -1,0 +1,5 @@
+config:
+  azure-native:location: AustraliaEast
+  helix:managingTenantId: <your-managing-tenant-id>
+  helix:readerGroupObjectId: <your-reader-group-object-id>
+  helix:readerGroupDisplayName: Helix Lighthouse Readers
